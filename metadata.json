@@ -1,0 +1,6 @@
+{
+  "name": "KOMSE DESIGN",
+  "description": "Where Sierra Leonean heritage meets contemporary design. Premium custom clothing inspired by culture, crafted for the world.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
