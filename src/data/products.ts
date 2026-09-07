@@ -26,7 +26,7 @@ import unisex_Visor_capImg1 from '../assets/images/unisex_Visor_caps1.jpg';
 import unisex_Visor_capImg2 from '../assets/images/unisex_Visor_caps2.jpg';
 import unisex_Visor_capImg3 from '../assets/images/unisex_Visor_caps3.jpg';
 import unisex_Visor_capImg4 from '../assets/images/unisex_Visor_caps4.jpg';
-import taffetaTracksuitImg1 from '../assets/images/Unisex_Taffeta_Tracksuit1.jpg';
+import taffetaTracksuitImg1 from '../assets/images/unisex_Taffeta_Tracksuit1.jpg';
 import unisextaffetaTracksuitImg1 from '../assets/images/unisex_Taffeta_Tracksuit1.jpg';
 import unisextaffetaTracksuitImg2 from '../assets/images/unisex_Taffeta_Tracksuit2.jpg';
 import unisextaffetaTracksuitImg3 from '../assets/images/unisex_Taffeta_Tracksuit3.jpg';
