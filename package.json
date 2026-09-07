@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "concurrently \"vite\" \"tsx server.ts\"",
     "server": "tsx server.ts",
+    "start": "tsx server.ts",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
@@ -40,7 +41,7 @@
     "concurrently": "^10.0.5",
     "esbuild": "^0.25.0",
     "tailwindcss": "^4.1.14",
-    "tsx": "^4.21.0",
+    "tsx": "^4.23.13",
     "typescript": "~5.8.2",
     "vite": "^6.2.3"
   }

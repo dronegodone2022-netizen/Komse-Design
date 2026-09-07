@@ -19,6 +19,10 @@ app.use((req, res, next) => {
   next();
 });
 
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', service: 'komse-design-api' });
+});
+
 const getStripe = () => {
   const secretKey = process.env.STRIPE_SECRET_KEY;
   return secretKey ? new Stripe(secretKey) : null;
@@ -330,6 +334,14 @@ app.post('/api/order-notification', async (req, res) => {
   }
 });
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`Mail server listening on http://localhost:${port}`);
 });
+
+const shutdown = (signal: string) => {
+  console.log(`${signal} received; shutting down.`);
+  server.close(() => process.exit(0));
+};
+
+process.once('SIGINT', () => shutdown('SIGINT'));
+process.once('SIGTERM', () => shutdown('SIGTERM'));

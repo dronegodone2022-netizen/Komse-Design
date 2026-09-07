@@ -22,6 +22,8 @@ View your app in AI Studio: https://ai.studio/apps/34cc0765-4c1f-4950-ba7a-900a6
 
 For GitHub Pages project hosting, this repository uses `/Komse-Design/` as its production base path. Set `VITE_API_URL` to the deployed Express backend URL before building. GitHub Pages can host the Vite frontend only; the Express server must run on a separate backend host. Set that backend's `FRONTEND_URL` to `https://dronegodone2022-netizen.github.io`.
 
+The Node backend starts with `npm start` and exposes `GET /health` for deployment health checks. Deploy the repository root to a Node host, set the server environment variables from `.env.example`, and use the resulting backend URL as the frontend `VITE_API_URL` value.
+
 For password reset links to work locally, add `http://localhost:3000/?reset_password=1` to Supabase **Authentication → URL Configuration → Redirect URLs**. Add the equivalent production URL before deploying.
 
 To enable Google signup, configure Google under Supabase **Authentication → Providers → Google** with a Google OAuth client ID and secret. Add `http://localhost:3000/?auth=google` to Supabase **Redirect URLs**, and add the Supabase callback URL shown in the provider settings to the Google Cloud OAuth client's authorized redirect URIs.
