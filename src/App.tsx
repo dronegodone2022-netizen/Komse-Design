@@ -226,8 +226,15 @@ export default function App() {
 
   const [wishlistIds, setWishlistIds] = useState<string[]>([]);
 
+  const getRoutePath = () => {
+    const params = new URLSearchParams(window.location.search);
+    const pathParam = params.get('path');
+    if (pathParam) return pathParam;
+    return window.location.pathname;
+  };
+
   // Modals Visibility
-  const [adminModalOpen, setAdminModalOpen] = useState(() => window.location.pathname === '/admin');
+  const [adminModalOpen, setAdminModalOpen] = useState(() => getRoutePath() === '/admin');
   const [customOrderModalOpen, setCustomOrderModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [productModalOpen, setProductModalOpen] = useState(false);
@@ -1129,7 +1136,7 @@ export default function App() {
   const customerOrders = currentUser
     ? userOrders.filter((order) => order.customerEmail?.toLowerCase() === currentUser.email.toLowerCase())
     : [];
-  const isAdminPage = window.location.pathname === '/admin';
+  const isAdminPage = getRoutePath() === '/admin';
 
   return (
     <div className="min-h-screen bg-[#FAF9F6] font-sans text-stone-900 selection:bg-[#C5A059] selection:text-white flex flex-col justify-between">

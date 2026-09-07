@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Redirecting...</title>
+    <script>
+      (() => {
+        const repoBase = '/Komse-Design';
+        const pathname = window.location.pathname || '/';
+        const requestedPath = pathname.startsWith(repoBase)
+          ? pathname.slice(repoBase.length) || '/'
+          : pathname;
+
+        if (!requestedPath || requestedPath === '/' || requestedPath === '/index.html') {
+          window.location.replace(`${repoBase}/`);
+          return;
+        }
+
+        const target = `${repoBase}/?path=${encodeURIComponent(requestedPath)}${window.location.search}${window.location.hash}`;
+        window.location.replace(target);
+      })();
+    </script>
+  </head>
+  <body>
+    <p>Redirecting...</p>
+  </body>
+</html>
