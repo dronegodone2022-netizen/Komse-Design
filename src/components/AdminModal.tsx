@@ -472,17 +472,11 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       return;
     }
 
-    // Validate email & password credentials
-    const isValidEmail = isValidDemoEmail;
-    const isValidPassword = isValidDemoPassword;
-
-    if (isValidEmail && isValidPassword) {
-      setIsAdminAuthenticated(true);
-      setAdminAuthError(null);
-      showAdminToast('Welcome Administrator! Session authenticated.');
-    } else {
-      setAdminAuthError('Invalid administrator credentials. Access restricted.');
-    }
+    setAdminAuthError(
+      window.location.hostname === 'localhost'
+        ? 'Invalid administrator credentials. Access restricted.'
+        : 'Supabase authentication is not configured for this deployment. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in GitHub Actions.',
+    );
   };
 
   const handleAutofillAdmin = () => {
