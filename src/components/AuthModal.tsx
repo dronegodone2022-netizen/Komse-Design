@@ -407,6 +407,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setAuthError('The email address or password is incorrect. Check both fields and try again.');
       return;
     }
+    if (!data.user.email_confirmed_at) {
+      await supabase.auth.signOut();
+      setAuthError('Please confirm your email address before signing in. Check your inbox or spam folder.');
+      return;
+    }
 
     const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).maybeSingle();
     const supabaseProfile = profile ? profileFromRow(profile as Record<string, unknown>) : null;
@@ -496,7 +501,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       country: 'France',
       joinedDate: 'Today',
     };
-    if (!data.session) {
+    if (!data.user.email_confirmed_at || !data.session) {
+      if (data.session) await supabase.auth.signOut();
       setAuthMode('login');
       setPassword('');
       setAuthSuccess('Account created. Check your email to confirm your account.');
