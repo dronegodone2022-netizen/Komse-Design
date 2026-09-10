@@ -37,6 +37,34 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
+-- Prevent duplicate profile identities, regardless of letter case or extra spaces.
+create unique index if not exists profiles_email_unique_ci
+on public.profiles (lower(trim(email)));
+
+create unique index if not exists profiles_name_unique_ci
+on public.profiles (lower(regexp_replace(trim(name), E'\\s+', ' ', 'g')));
+
+create or replace function public.check_registration_availability(requested_email text, requested_name text)
+returns json
+language sql
+security definer
+set search_path = public
+as $$
+  select json_build_object(
+    'email_taken', exists (
+      select 1 from public.profiles
+      where lower(trim(email)) = lower(trim(requested_email))
+    ),
+    'name_taken', exists (
+      select 1 from public.profiles
+      where lower(regexp_replace(trim(name), E'\\s+', ' ', 'g')) = lower(regexp_replace(trim(requested_name), E'\\s+', ' ', 'g'))
+    )
+  );
+$$;
+
+revoke all on function public.check_registration_availability(text, text) from public;
+grant execute on function public.check_registration_availability(text, text) to anon, authenticated;
+
 -- Keep customer order access limited to the authenticated owner.
 drop policy if exists "Users can create their own orders" on public.orders;
 create policy "Users can create their own orders"

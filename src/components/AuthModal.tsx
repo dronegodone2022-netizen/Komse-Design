@@ -450,11 +450,37 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setAuthError('Supabase is not configured.');
       return;
     }
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedName = fullName.trim().replace(/\s+/g, ' ');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      setAuthError('Please enter a valid email address.');
+      return;
+    }
+    if (normalizedName.length < 2) {
+      setAuthError('Please enter your full name.');
+      return;
+    }
     setAuthError('');
+    const { data: availability, error: availabilityError } = await supabase.rpc('check_registration_availability', {
+      requested_email: normalizedEmail,
+      requested_name: normalizedName,
+    });
+    if (availabilityError) {
+      setAuthError('Unable to verify account availability. Please try again.');
+      return;
+    }
+    if (availability?.email_taken) {
+      setAuthError('An account with this email already exists. Please sign in instead.');
+      return;
+    }
+    if (availability?.name_taken) {
+      setAuthError('This name is already in use. Please choose a different name.');
+      return;
+    }
     const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
+      email: normalizedEmail,
       password,
-      options: { data: { name: fullName.trim() } },
+      options: { data: { name: normalizedName } },
     });
     if (error || !data.user) {
       setAuthError(error?.message || 'Unable to create account.');
@@ -462,8 +488,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
     const newUser: UserProfile = {
       id: data.user.id,
-      name: fullName,
-      email: email,
+      name: normalizedName,
+      email: normalizedEmail,
       phone: phone || '+33 6 12 34 56 78',
       address: '14 Rue de la Paix',
       city: 'Paris',
