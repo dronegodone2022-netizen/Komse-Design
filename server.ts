@@ -9,9 +9,15 @@ const port = Number(process.env.PORT || process.env.SERVER_PORT || process.env.M
 
 app.use(express.json({ limit: '32kb' }));
 app.use((req, res, next) => {
-  const allowedOrigin = process.env.FRONTEND_URL;
-  if (allowedOrigin) {
-    res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+  const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    'https://dronegodone2022-netizen.github.io',
+    'http://localhost:3000',
+  ].filter(Boolean);
+  const requestOrigin = req.headers.origin;
+  if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
+    res.setHeader('Access-Control-Allow-Origin', requestOrigin);
+    res.setHeader('Vary', 'Origin');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
   }
