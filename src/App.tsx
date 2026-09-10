@@ -1344,7 +1344,8 @@ export default function App() {
         onLogin={handleLogin}
         onLogout={handleLogout}
         onUpdateUser={handleUpdateUser}
-        initialDashboardTab={completeProfileForCheckout ? 'profile' : 'orders'}
+        completeProfileForCheckout={completeProfileForCheckout}
+        initialDashboardTab={completeProfileForCheckout ? 'address' : 'orders'}
         onDeleteOrder={handleDeleteOrder}
         userOrders={customerOrders}
         allUsers={usersList}

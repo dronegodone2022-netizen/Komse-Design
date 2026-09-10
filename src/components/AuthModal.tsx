@@ -34,6 +34,7 @@ interface AuthModalProps {
   isOpen: boolean;
   initialAuthMode?: 'login' | 'register';
   initialDashboardTab?: 'orders' | 'address' | 'profile';
+  completeProfileForCheckout?: boolean;
   onClose: () => void;
   currentUser: UserProfile | null;
   onLogin: (user: UserProfile) => void;
@@ -56,6 +57,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   initialAuthMode = 'login',
   initialDashboardTab = 'orders',
+  completeProfileForCheckout = false,
   onClose,
   currentUser,
   onLogin,
@@ -941,6 +943,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
               {dashboardTab === 'address' && (
                 <form onSubmit={handleSaveAddress} className="space-y-4 max-w-md">
+                  {completeProfileForCheckout && (
+                    <div className="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg text-xs font-semibold">
+                      Complete your shipping details below to continue to secure checkout.
+                    </div>
+                  )}
                   <div className="space-y-1">
                     <h3 className="font-bold text-stone-900 text-sm uppercase">Default Shipping Address</h3>
                     <p className="text-stone-500 text-[11px]">Used for automatic express checkout.</p>
