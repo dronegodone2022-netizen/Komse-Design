@@ -12,6 +12,14 @@ alter table public.orders
   add column if not exists items_count integer not null default 0,
   add column if not exists items_summary text not null default '';
 
+-- Keep customer shipping and contact details in the profile row.
+alter table public.profiles
+  add column if not exists phone text,
+  add column if not exists address text,
+  add column if not exists postal_code text,
+  add column if not exists city text,
+  add column if not exists country text;
+
 -- Create profiles securely during signup, including when email confirmation is enabled.
 create or replace function public.handle_new_user()
 returns trigger
