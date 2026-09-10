@@ -120,7 +120,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 }) => {
   // Admin Authentication State
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
-  const [adminEmail, setAdminEmail] = useState<string>('admin@komse.com');
+  const isLocalhost = window.location.hostname === 'localhost';
+  const [adminEmail, setAdminEmail] = useState<string>(isLocalhost ? 'admin@komse.com' : '');
   const [adminPassword, setAdminPassword] = useState<string>('');
   const [adminAuthError, setAdminAuthError] = useState<string | null>(null);
 
@@ -933,7 +934,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       required
                       value={adminEmail}
                       onChange={(e) => setAdminEmail(e.target.value)}
-                      placeholder="admin@komse.com"
+                      placeholder="administrator@example.com"
                       className="w-full pl-9 pr-3 py-2.5 text-xs border border-stone-300 rounded-lg bg-stone-50 focus:bg-white focus:outline-none focus:border-[#C5A059] font-medium"
                     />
                   </div>
@@ -962,17 +963,18 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 </button>
               </form>
 
-              {/* Autofill Demo Credentials Shortcut */}
-              <div className="pt-4 border-t border-stone-100 flex flex-col items-center gap-2">
-                <span className="text-[11px] text-stone-400 font-medium">Demo Administrator Credentials</span>
-                <button
-                  type="button"
-                  onClick={handleAutofillAdmin}
-                  className="bg-[#F7F4EE] hover:bg-[#EFEADF] border border-[#C5A059]/40 text-[#A88238] px-3 py-1.5 rounded text-[11px] font-bold uppercase tracking-wider cursor-pointer transition-colors flex items-center gap-1.5"
-                >
-                  <Key className="w-3.5 h-3.5" /> Autofill Demo Admin Logins (admin@komse.com / admin123)
-                </button>
-              </div>
+              {isLocalhost && (
+                <div className="pt-4 border-t border-stone-100 flex flex-col items-center gap-2">
+                  <span className="text-[11px] text-stone-400 font-medium">Demo Administrator Credentials</span>
+                  <button
+                    type="button"
+                    onClick={handleAutofillAdmin}
+                    className="bg-[#F7F4EE] hover:bg-[#EFEADF] border border-[#C5A059]/40 text-[#A88238] px-3 py-1.5 rounded text-[11px] font-bold uppercase tracking-wider cursor-pointer transition-colors flex items-center gap-1.5"
+                  >
+                    <Key className="w-3.5 h-3.5" /> Autofill Demo Admin Login
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         ) : (
