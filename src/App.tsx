@@ -309,11 +309,27 @@ export default function App() {
     const client = supabase;
     if (!client) return;
 
+    const restoreProfile = async (session: NonNullable<Awaited<ReturnType<typeof client.auth.getSession>>['data']['session']>) => {
+      const { data: profile, error } = await client.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+      if (profile) {
+        const restoredProfile = profileFromRow(profile as Record<string, unknown>);
+        setCurrentUser(restoredProfile);
+        try {
+          localStorage.setItem(`komse_profile_${restoredProfile.id}`, JSON.stringify(restoredProfile));
+        } catch (e) {}
+        return;
+      }
+
+      if (error) console.error('Profile restore failed:', error);
+      try {
+        const cached = localStorage.getItem(`komse_profile_${session.user.id}`);
+        if (cached) setCurrentUser(JSON.parse(cached) as UserProfile);
+      } catch (e) {}
+    };
+
     const restoreSession = async () => {
       const { data } = await client.auth.getSession();
-      if (!data.session) return;
-      const { data: profile } = await client.from('profiles').select('*').eq('id', data.session.user.id).maybeSingle();
-      if (profile) setCurrentUser(profileFromRow(profile as Record<string, unknown>));
+      if (data.session) await restoreProfile(data.session);
     };
 
     void restoreSession();
@@ -322,8 +338,7 @@ export default function App() {
         setCurrentUser(null);
         return;
       }
-      const { data: profile } = await client.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
-      if (profile) setCurrentUser(profileFromRow(profile as Record<string, unknown>));
+      await restoreProfile(session);
     });
     return () => listener.subscription.unsubscribe();
   }, []);
@@ -934,6 +949,9 @@ export default function App() {
         throw error;
       }
     }
+    try {
+      localStorage.setItem(`komse_profile_${updated.id}`, JSON.stringify(updated));
+    } catch (e) {}
     setCurrentUser(updated);
     setUsersList((prev) => prev.map((user) => (user.id === updated.id ? updated : user)));
     if (
