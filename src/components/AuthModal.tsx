@@ -40,7 +40,7 @@ interface AuthModalProps {
   currentUser: UserProfile | null;
   onLogin: (user: UserProfile) => void;
   onLogout: () => void;
-  onUpdateUser: (updated: UserProfile) => void;
+  onUpdateUser: (updated: UserProfile) => void | Promise<void>;
   onDeleteOrder?: (orderId: string) => void;
   userOrders: UserOrder[];
   allUsers?: UserProfile[];
@@ -534,19 +534,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   // Save updated address
-  const handleSaveAddress = (e: React.FormEvent) => {
+  const handleSaveAddress = async (e: React.FormEvent) => {
     e.preventDefault();
     if (currentUser) {
-      onUpdateUser({
-        ...currentUser,
-        address: editAddress,
-        postalCode: editPostalCode,
-        city: editCity,
-        country: editCountry,
-        phone: `${editPhoneCode} ${editPhoneNumber}`.trim(),
-      });
-      setAddressSaved(true);
-      setTimeout(() => setAddressSaved(false), 2500);
+      try {
+        await onUpdateUser({
+          ...currentUser,
+          address: editAddress,
+          postalCode: editPostalCode,
+          city: editCity,
+          country: editCountry,
+          phone: `${editPhoneCode} ${editPhoneNumber}`.trim(),
+        });
+        setAddressSaved(true);
+        setTimeout(() => setAddressSaved(false), 2500);
+      } catch (error) {
+        setAuthError(error instanceof Error ? error.message : 'Unable to save your shipping address.');
+      }
     }
   };
 

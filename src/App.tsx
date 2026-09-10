@@ -921,20 +921,21 @@ export default function App() {
     if (supabase) void supabase.auth.signOut();
   };
 
-  const handleUpdateUser = (updated: UserProfile) => {
-    setCurrentUser(updated);
-    setUsersList((prev) => prev.map((user) => (user.id === updated.id ? updated : user)));
+  const handleUpdateUser = async (updated: UserProfile) => {
     if (supabase) {
-      void supabase
+      const { error } = await supabase
         .from('profiles')
         .upsert(profileToRow(updated), { onConflict: 'id' })
-        .then(({ error }) => {
-          if (error) {
-            console.error('Profile save failed:', error);
-            showToast(`Profile could not be saved: ${error.message}`);
-          }
-        });
+        .select('id, name, email, phone, address, postal_code, city, country, role, status')
+        .single();
+      if (error) {
+        console.error('Profile save failed:', error);
+        showToast(`Profile could not be saved: ${error.message}`);
+        throw error;
+      }
     }
+    setCurrentUser(updated);
+    setUsersList((prev) => prev.map((user) => (user.id === updated.id ? updated : user)));
     if (
       completeProfileForCheckout &&
       currentUser?.id === updated.id &&
