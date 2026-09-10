@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { UserProfile, UserOrder } from '../types';
 import { supabase } from '../lib/supabase';
 import { profileFromRow, profileToRow } from '../lib/profile';
+import { COUNTRY_OPTIONS, detectDefaultCountry, getDialCode } from '../utils/currencyDetector';
 import {
   X,
   User,
@@ -214,6 +215,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
+  const [registrationCountry, setRegistrationCountry] = useState(() => detectDefaultCountry());
+  const [registrationPhoneCode, setRegistrationPhoneCode] = useState(() => getDialCode(detectDefaultCountry()));
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState('');
   const [authSuccess, setAuthSuccess] = useState('');
@@ -227,6 +230,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [editCity, setEditCity] = useState(currentUser?.city || 'Paris');
   const [editCountry, setEditCountry] = useState(currentUser?.country || 'France');
   const [editPhone, setEditPhone] = useState(currentUser?.phone || '+33 6 12 34 56 78');
+  const [editPhoneCode, setEditPhoneCode] = useState(() => getDialCode(currentUser?.country || 'France'));
+  const [editPhoneNumber, setEditPhoneNumber] = useState('');
   const [addressSaved, setAddressSaved] = useState(false);
   const [profilePictureError, setProfilePictureError] = useState('');
 
@@ -241,6 +246,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setEditCity(currentUser?.city || '');
     setEditCountry(currentUser?.country || 'France');
     setEditPhone(currentUser?.phone || '');
+    const country = currentUser?.country || 'France';
+    const code = getDialCode(country);
+    setEditPhoneCode(code);
+    setEditPhoneNumber((currentUser?.phone || '').replace(new RegExp(`^\\${code}\\s*`), ''));
   }, [currentUser]);
 
   const handleCopyTracking = (trackingNum: string) => {
@@ -500,10 +509,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       id: data.user.id,
       name: normalizedName,
       email: normalizedEmail,
-      phone: phone || '+33 6 12 34 56 78',
+      phone: phone ? `${registrationPhoneCode} ${phone}`.trim() : '',
       address: '14 Rue de la Paix',
       city: 'Paris',
-      country: 'France',
+      country: registrationCountry,
       joinedDate: 'Today',
     };
     if (!data.user.email_confirmed_at || !data.session) {
@@ -534,7 +543,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         postalCode: editPostalCode,
         city: editCity,
         country: editCountry,
-        phone: editPhone,
+        phone: `${editPhoneCode} ${editPhoneNumber}`.trim(),
       });
       setAddressSaved(true);
       setTimeout(() => setAddressSaved(false), 2500);
@@ -995,25 +1004,42 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
                     <div>
                       <label className="block text-stone-700 font-bold mb-1">Country</label>
-                      <input
-                        type="text"
-                        required
-                        value={editCountry}
-                        onChange={(e) => setEditCountry(e.target.value)}
-                        className="w-full p-2.5 border border-stone-300 rounded bg-white text-stone-900"
-                      />
+                        <select
+                          value={editCountry}
+                          onChange={(e) => {
+                            setEditCountry(e.target.value);
+                            setEditPhoneCode(getDialCode(e.target.value));
+                          }}
+                          className="w-full p-2.5 border border-stone-300 rounded bg-white text-stone-900"
+                        >
+                          {COUNTRY_OPTIONS.map((option) => (
+                            <option key={option.code} value={option.name}>{option.name}</option>
+                          ))}
+                        </select>
                     </div>
                   </div>
 
                   <div>
                     <label className="block text-stone-700 font-bold mb-1">Phone Number</label>
-                    <input
-                      type="text"
-                      required
-                      value={editPhone}
-                      onChange={(e) => setEditPhone(e.target.value)}
-                      className="w-full p-2.5 border border-stone-300 rounded bg-white text-stone-900"
-                    />
+                    <div className="grid grid-cols-[auto_1fr] gap-2">
+                      <select
+                        value={editPhoneCode}
+                        onChange={(e) => setEditPhoneCode(e.target.value)}
+                        className="p-2.5 border border-stone-300 rounded bg-white text-stone-900"
+                        aria-label="Country dialing code"
+                      >
+                        {COUNTRY_OPTIONS.map((option) => (
+                          <option key={option.code} value={option.dialCode}>{option.dialCode}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="tel"
+                        required
+                        value={editPhoneNumber}
+                        onChange={(e) => setEditPhoneNumber(e.target.value)}
+                        className="w-full p-2.5 border border-stone-300 rounded bg-white text-stone-900"
+                      />
+                    </div>
                   </div>
 
                   <button
@@ -1396,16 +1422,41 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
                 <div>
                   <label className="block text-stone-700 font-bold mb-1">Phone Number (Optional)</label>
-                  <div className="relative">
-                    <Phone className="w-4 h-4 absolute left-3 top-3 text-stone-400" />
+                  <div className="grid grid-cols-[auto_1fr] gap-2">
+                    <select
+                      value={registrationPhoneCode}
+                      onChange={(event) => setRegistrationPhoneCode(event.target.value)}
+                      className="p-2.5 border border-stone-300 rounded bg-white text-stone-900"
+                      aria-label="Country dialing code"
+                    >
+                      {COUNTRY_OPTIONS.map((option) => (
+                        <option key={option.code} value={option.dialCode}>{option.dialCode}</option>
+                      ))}
+                    </select>
                     <input
                       type="text"
-                      placeholder="+33 6 12 34 56 78"
+                      placeholder="6 12 34 56 78"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 border border-stone-300 rounded bg-white text-stone-900"
+                      className="w-full p-2.5 border border-stone-300 rounded bg-white text-stone-900"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-stone-700 font-bold mb-1">Country / Region</label>
+                  <select
+                    value={registrationCountry}
+                    onChange={(event) => {
+                      setRegistrationCountry(event.target.value);
+                      setRegistrationPhoneCode(getDialCode(event.target.value));
+                    }}
+                    className="w-full p-2.5 border border-stone-300 rounded bg-white text-stone-900"
+                  >
+                    {COUNTRY_OPTIONS.map((option) => (
+                      <option key={option.code} value={option.name}>{option.name}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
