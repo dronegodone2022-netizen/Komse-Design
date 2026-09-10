@@ -192,6 +192,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
       mode: 'payment',
       line_items: lineItems,
       customer: stripeCustomer.id,
+      customer_email: customer.email,
       billing_address_collection: 'required',
       phone_number_collection: { enabled: true },
       shipping_address_collection: { allowed_countries: ['FR', 'GB', 'US', 'SL', 'SN', 'CI', 'GH', 'NG'] },
@@ -318,7 +319,27 @@ app.post('/api/order-notification', async (req, res) => {
   }
 
   try {
+    const message = {
+      from: mailFrom,
+      subject: `KOMSE DESIGN payment confirmation: ${order.id}`,
+      text: [
+        'Thank you for your KOMSE DESIGN order.',
+        '',
+        `Order: ${order.id}`,
+        `Customer: ${order.customerName || 'Customer'}`,
+        `Items: ${order.itemsCount ?? 'N/A'}`,
+        `Products: ${order.itemsSummary}`,
+        `Total paid: EUR ${order.totalAmountEur ?? 'N/A'}`,
+        '',
+        'Your payment was received successfully. We will send further updates as your order progresses.',
+      ].join('\n'),
+    };
     await transporter.sendMail({
+      ...message,
+      to: order.customerEmail,
+    });
+    await transporter.sendMail({
+      ...message,
       from: mailFrom,
       to: adminEmail,
       subject: `New KOMSE DESIGN order: ${order.id}`,
