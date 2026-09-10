@@ -247,8 +247,9 @@ export default function App() {
   }, [productsList]);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(() => {
-    const paymentStatus = new URLSearchParams(window.location.search).get('payment');
-    return paymentStatus === 'success';
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get('session_id');
+    return params.get('payment') === 'success' && Boolean(sessionId) && !sessionStorage.getItem(`komse_paid_${sessionId}`);
   });
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [wishlistDrawerOpen, setWishlistDrawerOpen] = useState(false);
