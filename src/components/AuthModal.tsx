@@ -485,7 +485,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     const { data, error } = await supabase.auth.signUp({
       email: normalizedEmail,
       password,
-      options: { data: { name: normalizedName } },
+      options: {
+        data: { name: normalizedName },
+        emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL}`,
+      },
     });
     if (error || !data.user) {
       setAuthError(error?.message || 'Unable to create account.');
