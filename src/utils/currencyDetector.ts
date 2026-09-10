@@ -1,5 +1,20 @@
 import { CurrencyCode } from '../types';
 
+export const COUNTRY_OPTIONS = [
+  { name: 'France', code: 'FR', dialCode: '+33' },
+  { name: 'United Kingdom', code: 'GB', dialCode: '+44' },
+  { name: 'United States', code: 'US', dialCode: '+1' },
+  { name: 'Sierra Leone', code: 'SL', dialCode: '+232' },
+  { name: 'Senegal', code: 'SN', dialCode: '+221' },
+  { name: "Cote d'Ivoire", code: 'CI', dialCode: '+225' },
+  { name: 'Ghana', code: 'GH', dialCode: '+233' },
+  { name: 'Nigeria', code: 'NG', dialCode: '+234' },
+] as const;
+
+export function getDialCode(country: string): string {
+  return COUNTRY_OPTIONS.find((option) => option.name === country)?.dialCode || '+33';
+}
+
 /**
  * Detects the user's default currency based on browser location settings
  * (Intl timeZone, navigator.language, and navigator.languages).

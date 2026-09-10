@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { CartItem, CurrencyCode, UserOrder, UserProfile } from '../types';
 import { CURRENCIES } from '../data/products';
 import { apiUrl } from '../lib/api';
-import { detectDefaultCountry } from '../utils/currencyDetector';
+import { COUNTRY_OPTIONS, detectDefaultCountry, getDialCode } from '../utils/currencyDetector';
 import { X, CheckCircle, Lock, Download } from 'lucide-react';
 
 interface CheckoutModalProps {
@@ -36,6 +36,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     postalCode: '',
     country: detectDefaultCountry(),
   });
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [phoneCode, setPhoneCode] = useState(() => getDialCode(detectDefaultCountry()));
 
   const [orderComplete, setOrderComplete] = useState(false);
   const [orderId, setOrderId] = useState('');
@@ -70,6 +72,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       city: currentUser?.city || previous.city,
       country: currentUser?.country || previous.country || 'France',
     }));
+    const country = currentUser?.country || detectDefaultCountry();
+    const code = getDialCode(country);
+    setPhoneCode(code);
+    setPhoneNumber((currentUser?.phone || '').replace(new RegExp(`^\\${code}\\s*`), ''));
   }, [currentUser]);
 
   useEffect(() => {
@@ -116,7 +122,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           customer: {
             name: `${formData.firstName} ${formData.lastName}`.trim(),
             email: formData.email,
-            phone: formData.phone,
+            phone: `${phoneCode} ${phoneNumber}`.trim(),
             address: formData.address,
             city: formData.city,
             postalCode: formData.postalCode,
@@ -288,14 +294,43 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     </div>
                     <div className="col-span-2">
                       <label className="block text-stone-600 mb-1">Country / Region</label>
-                      <input
-                        type="text"
+                      <select
                         name="country"
                         required
                         value={formData.country}
-                        onChange={handleInputChange}
+                        onChange={(event) => {
+                          setFormData((previous) => ({ ...previous, country: event.target.value }));
+                          setPhoneCode(getDialCode(event.target.value));
+                        }}
                         className="w-full p-2 border border-stone-300 rounded bg-white"
-                      />
+                      >
+                        {COUNTRY_OPTIONS.map((option) => (
+                          <option key={option.code} value={option.name}>{option.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-stone-600 mb-1">Phone Number</label>
+                      <div className="grid grid-cols-[auto_1fr] gap-2">
+                        <select
+                          value={phoneCode}
+                          onChange={(event) => setPhoneCode(event.target.value)}
+                          className="p-2 border border-stone-300 rounded bg-white"
+                          aria-label="Country dialing code"
+                        >
+                          {COUNTRY_OPTIONS.map((option) => (
+                            <option key={option.code} value={option.dialCode}>{option.dialCode}</option>
+                          ))}
+                        </select>
+                        <input
+                          type="tel"
+                          required
+                          value={phoneNumber}
+                          onChange={(event) => setPhoneNumber(event.target.value)}
+                          placeholder="6 12 34 56 78"
+                          className="w-full p-2 border border-stone-300 rounded bg-white"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
