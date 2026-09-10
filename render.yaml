@@ -13,7 +13,7 @@ services:
       - key: FRONTEND_URL
         value: https://dronegodone2022-netizen.github.io
       - key: APP_URL
-        value: https://dronegodone2022-netizen.github.io
+        value: https://dronegodone2022-netizen.github.io/Komse-Design
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: SUPABASE_URL
