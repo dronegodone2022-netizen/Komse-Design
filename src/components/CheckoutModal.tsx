@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { CartItem, CurrencyCode, UserOrder, UserProfile } from '../types';
 import { CURRENCIES } from '../data/products';
 import { apiUrl } from '../lib/api';
+import { detectDefaultCountry } from '../utils/currencyDetector';
 import { X, CheckCircle, Lock, Download } from 'lucide-react';
 
 interface CheckoutModalProps {
@@ -33,7 +34,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     address: '',
     city: '',
     postalCode: '',
-    country: 'France',
+    country: detectDefaultCountry(),
   });
 
   const [orderComplete, setOrderComplete] = useState(false);
@@ -69,6 +70,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       city: currentUser?.city || previous.city,
       country: currentUser?.country || previous.country || 'France',
     }));
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (!currentUser) {
+      setFormData((previous) => ({ ...previous, country: previous.country || detectDefaultCountry() }));
+    }
   }, [currentUser]);
 
   useEffect(() => {
@@ -275,6 +282,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         name="postalCode"
                         required
                         value={formData.postalCode}
+                        onChange={handleInputChange}
+                        className="w-full p-2 border border-stone-300 rounded bg-white"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <label className="block text-stone-600 mb-1">Country / Region</label>
+                      <input
+                        type="text"
+                        name="country"
+                        required
+                        value={formData.country}
                         onChange={handleInputChange}
                         className="w-full p-2 border border-stone-300 rounded bg-white"
                       />

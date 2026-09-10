@@ -81,3 +81,31 @@ export function detectDefaultCurrency(): CurrencyCode {
     return 'EUR';
   }
 }
+
+export function detectDefaultCountry(): string {
+  try {
+    const languages = [navigator.language, ...(navigator.languages || [])].filter(Boolean);
+    const region = languages
+      .map((language) => language.split(/[-_]/)[1]?.toUpperCase())
+      .find((value) => value && value.length === 2);
+    const countries: Record<string, string> = {
+      FR: 'France',
+      GB: 'United Kingdom',
+      US: 'United States',
+      SL: 'Sierra Leone',
+      SN: 'Senegal',
+      CI: "Cote d'Ivoire",
+      GH: 'Ghana',
+      NG: 'Nigeria',
+    };
+    if (region && countries[region]) return countries[region];
+
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    if (/freetown|sierra_leone/i.test(timeZone)) return 'Sierra Leone';
+    if (/paris|london/i.test(timeZone)) return timeZone.toLowerCase().includes('london') ? 'United Kingdom' : 'France';
+    if (/new_york|detroit|chicago|denver|los_angeles|phoenix|honolulu/i.test(timeZone)) return 'United States';
+  } catch (error) {
+    console.warn('Unable to detect country from browser settings:', error);
+  }
+  return 'France';
+}
