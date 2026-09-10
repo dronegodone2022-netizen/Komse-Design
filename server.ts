@@ -5,7 +5,7 @@ import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
 const app = express();
-const port = Number(process.env.SERVER_PORT || process.env.MAIL_PORT || 3001);
+const port = Number(process.env.PORT || process.env.SERVER_PORT || process.env.MAIL_PORT || 3001);
 
 app.use(express.json({ limit: '32kb' }));
 app.use((req, res, next) => {
