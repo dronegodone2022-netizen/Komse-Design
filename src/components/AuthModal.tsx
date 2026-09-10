@@ -225,7 +225,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [newPassword, setNewPassword] = useState('');
 
   // Edit Address states
-  const [editAddress, setEditAddress] = useState(currentUser?.address || '14 Rue de la Paix');
+  const [editAddress, setEditAddress] = useState(currentUser?.address || 'Sample Street 1');
   const [editPostalCode, setEditPostalCode] = useState(currentUser?.postalCode || '');
   const [editCity, setEditCity] = useState(currentUser?.city || 'Paris');
   const [editCountry, setEditCountry] = useState(currentUser?.country || 'France');
@@ -375,16 +375,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const handleDemoLogin = () => {
     const demoUser: UserProfile = {
       id: 'usr-101',
-      name: 'Sylvester Ghamoi',
-      email: 'sylvester@rainforestbuilder.com',
+      name: 'Demo Administrator',
+      email: 'demo-admin@example.com',
       phone: '+33 6 12 34 56 78',
-      address: '14 Rue de la Paix',
+      address: 'Sample Street 1',
       city: 'Paris',
       country: 'France',
       joinedDate: 'January 2024',
     };
     onLogin(demoUser);
-    setAuthSuccess('Successfully logged in as Sylvester Ghamoi!');
+    setAuthSuccess('Successfully logged in as the demo administrator!');
     setTimeout(() => {
       setAuthSuccess('');
     }, 2000);
@@ -510,7 +510,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       name: normalizedName,
       email: normalizedEmail,
       phone: phone ? `${registrationPhoneCode} ${phone}`.trim() : '',
-      address: '14 Rue de la Paix',
+      address: 'Sample Street 1',
       city: 'Paris',
       country: registrationCountry,
       joinedDate: 'Today',
@@ -1335,7 +1335,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <input
                       type="email"
                       required
-                      placeholder="sylvester@rainforestbuilder.com"
+                      placeholder="you@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full pl-9 pr-3 py-2.5 border border-stone-300 rounded bg-white text-stone-900"
@@ -1397,7 +1397,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <input
                       type="text"
                       required
-                      placeholder="Sylvester Ghamoi"
+                      placeholder="Your full name"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       className="w-full pl-9 pr-3 py-2.5 border border-stone-300 rounded bg-white text-stone-900"
@@ -1412,7 +1412,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <input
                       type="email"
                       required
-                      placeholder="sylvester@example.com"
+                      placeholder="you@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full pl-9 pr-3 py-2.5 border border-stone-300 rounded bg-white text-stone-900"

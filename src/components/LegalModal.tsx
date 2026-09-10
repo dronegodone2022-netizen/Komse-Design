@@ -138,7 +138,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
                 <div className="bg-stone-100 p-4 rounded-xl border border-stone-200 space-y-1 text-xs">
                   <p className="font-bold text-stone-900">KOMSE DESIGN SARL — Data Protection Office</p>
                   <p className="text-stone-600">Email: dpo@komsedesign.com / privacy@komsedesign.com</p>
-                  <p className="text-stone-600">Address: 14 Rue de la Paix, 75002 Paris, France</p>
+                  <p className="text-stone-600">Address: KOMSE DESIGN, Paris, France</p>
                 </div>
               </section>
             </div>

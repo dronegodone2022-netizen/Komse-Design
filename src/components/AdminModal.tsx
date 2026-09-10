@@ -228,9 +228,9 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       timestamp: 'Today at 18:15',
       category: 'registration',
       action: 'New User Registration',
-      details: 'Aminata Bangura registered a new customer account from Freetown, Sierra Leone.',
-      actorName: 'Aminata Bangura',
-      actorEmail: 'aminata.bangura@freetown.sl',
+      details: 'A sample customer registered a new account.',
+      actorName: 'Sample Customer',
+      actorEmail: 'customer-two@example.com',
       badgeText: 'USER REGISTERED',
       badgeStyle: 'bg-emerald-100 text-emerald-800 border-emerald-300',
       targetId: 'usr-103',
@@ -241,8 +241,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       category: 'order',
       action: 'Order Status Change',
       details: 'Order ORD-2026-8891 status updated to SHIPPED (Tracking: DHL-882194-FR).',
-      actorName: 'Sylvester Ghamoi',
-      actorEmail: 'sylvester@rainforestbuilder.com',
+      actorName: 'Demo Administrator',
+      actorEmail: 'demo-admin@example.com',
       badgeText: 'ORDER SHIPPED',
       badgeStyle: 'bg-blue-100 text-blue-800 border-blue-300',
       targetId: 'ORD-2026-8891',
@@ -252,9 +252,9 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       timestamp: 'Today at 15:22',
       category: 'policy',
       action: 'Password Reset Issued',
-      details: 'Admin issued a temporary password reset token for account Sylvester Ghamoi.',
-      actorName: 'Sylvester Ghamoi',
-      actorEmail: 'sylvester@rainforestbuilder.com',
+      details: 'Admin issued a temporary password reset token for a sample account.',
+      actorName: 'Demo Administrator',
+      actorEmail: 'demo-admin@example.com',
       badgeText: 'PASSWORD RESET',
       badgeStyle: 'bg-amber-100 text-amber-800 border-amber-300',
       targetId: 'usr-101',
@@ -264,9 +264,9 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       timestamp: 'August 07, 2026 at 11:05',
       category: 'registration',
       action: 'New User Registration',
-      details: 'Marie Dupont created a customer profile from Paris, France.',
-      actorName: 'Marie Dupont',
-      actorEmail: 'marie.dupont@gmail.com',
+      details: 'A sample customer created a profile.',
+      actorName: 'Sample Customer',
+      actorEmail: 'customer-one@example.com',
       badgeText: 'USER REGISTERED',
       badgeStyle: 'bg-emerald-100 text-emerald-800 border-emerald-300',
       targetId: 'usr-102',
@@ -276,9 +276,9 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       timestamp: 'August 06, 2026 at 09:30',
       category: 'order',
       action: 'New Purchase Order',
-      details: 'Order ORD-2026-7712 placed by Marie Dupont (€45.00 - Heritage Black Tee).',
-      actorName: 'Marie Dupont',
-      actorEmail: 'marie.dupont@gmail.com',
+      details: 'Sample order ORD-2026-7712 was placed (€45.00 - Heritage Black Tee).',
+      actorName: 'Sample Customer',
+      actorEmail: 'customer-one@example.com',
       badgeText: 'NEW ORDER',
       badgeStyle: 'bg-purple-100 text-purple-800 border-purple-300',
       targetId: 'ORD-2026-7712',
@@ -434,7 +434,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     e.preventDefault();
     setAdminAuthError(null);
 
-    const validDemoEmails = ['admin@komse.com', 'admin@komse.design', 'sylvester@rainforestbuilder.com', 'admin'];
+    const validDemoEmails = ['admin@komse.com', 'admin@komse.design', 'demo-admin@example.com', 'admin'];
     const isValidDemoEmail = validDemoEmails.includes(adminEmail.toLowerCase().trim());
     const isValidDemoPassword = adminPassword.trim() === 'admin123' || adminPassword.trim() === 'admin2026';
     if (!supabase && window.location.hostname === 'localhost' && isValidDemoEmail && isValidDemoPassword) {
@@ -1841,7 +1841,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           <input
                             type="text"
                             required
-                            placeholder="e.g. Marie Dupont"
+                            placeholder="e.g. Sample Customer"
                             value={newOrderForm.customerName}
                             onChange={(e) => setNewOrderForm({ ...newOrderForm, customerName: e.target.value })}
                             className="w-full px-3 py-2 text-xs border border-stone-300 rounded bg-stone-50"
@@ -1853,7 +1853,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           <input
                             type="email"
                             required
-                            placeholder="marie.dupont@gmail.com"
+                            placeholder="customer@example.com"
                             value={newOrderForm.customerEmail}
                             onChange={(e) => setNewOrderForm({ ...newOrderForm, customerEmail: e.target.value })}
                             className="w-full px-3 py-2 text-xs border border-stone-300 rounded bg-stone-50"
@@ -2278,7 +2278,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           <input
                             type="text"
                             required
-                            placeholder="e.g. Aminata Bangura"
+                            placeholder="e.g. Sample Customer"
                             value={userFormData.name}
                             onChange={(e) => setUserFormData({ ...userFormData, name: e.target.value })}
                             className="w-full px-3 py-2 text-xs border border-stone-300 rounded bg-stone-50"

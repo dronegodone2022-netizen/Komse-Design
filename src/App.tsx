@@ -371,10 +371,10 @@ export default function App() {
   const defaultUsers: UserProfile[] = [
     {
       id: 'usr-101',
-      name: 'Sylvester Ghamoi',
-      email: 'sylvester@rainforestbuilder.com',
+      name: 'Demo Administrator',
+      email: 'demo-admin@example.com',
       phone: '+33 6 12 34 56 78',
-      address: '14 Rue de la Paix',
+      address: 'Sample Street 1',
       city: 'Paris',
       country: 'France',
       joinedDate: 'January 2024',
@@ -384,10 +384,10 @@ export default function App() {
     },
     {
       id: 'usr-102',
-      name: 'Marie Dupont',
-      email: 'marie.dupont@gmail.com',
+      name: 'Sample Customer',
+      email: 'customer-one@example.com',
       phone: '+33 6 98 76 54 32',
-      address: '8 Boulevard Haussmann',
+      address: 'Sample Street 2',
       city: 'Paris',
       country: 'France',
       joinedDate: 'March 2025',
@@ -397,10 +397,10 @@ export default function App() {
     },
     {
       id: 'usr-103',
-      name: 'Aminata Bangura',
-      email: 'aminata.bangura@freetown.sl',
+      name: 'Sample Customer Two',
+      email: 'customer-two@example.com',
       phone: '+232 76 123 456',
-      address: '12 Wilberforce Street',
+      address: 'Sample Street 3',
       city: 'Freetown',
       country: 'Sierra Leone',
       joinedDate: 'May 2025',
@@ -418,7 +418,9 @@ export default function App() {
     } catch (e) {
       console.warn('Failed to load saved users:', e);
     }
-    return defaultUsers.filter((user) => !deletedUserIds.has(user.id));
+    return window.location.hostname === 'localhost'
+      ? defaultUsers.filter((user) => !deletedUserIds.has(user.id))
+      : [];
   });
 
   useEffect(() => {
@@ -476,8 +478,8 @@ export default function App() {
     const defaultOrders: UserOrder[] = [
       {
       id: 'ORD-2026-1001',
-      customerName: 'Amina Mansaray',
-      customerEmail: 'amina.m@freetown.sl',
+      customerName: 'Sample Customer Three',
+      customerEmail: 'customer-three@example.com',
       date: 'January 14, 2026',
       itemsCount: 1,
       totalAmountEur: 65.0,
@@ -487,8 +489,8 @@ export default function App() {
     },
       {
       id: 'ORD-2026-2104',
-      customerName: 'Jean-Luc Moreau',
-      customerEmail: 'jl.moreau@paris.fr',
+      customerName: 'Sample Customer Four',
+      customerEmail: 'customer-four@example.com',
       date: 'February 22, 2026',
       itemsCount: 2,
       totalAmountEur: 180.0,
@@ -498,8 +500,8 @@ export default function App() {
     },
       {
       id: 'ORD-2026-3409',
-      customerName: 'Fatu Sesay',
-      customerEmail: 'fatu.sesay@kono.sl',
+      customerName: 'Sample Customer Five',
+      customerEmail: 'customer-five@example.com',
       date: 'March 18, 2026',
       itemsCount: 3,
       totalAmountEur: 210.0,
@@ -509,8 +511,8 @@ export default function App() {
     },
       {
       id: 'ORD-2026-4511',
-      customerName: 'Kofi Mensah',
-      customerEmail: 'kofi.mensah@accra.gh',
+      customerName: 'Sample Customer Six',
+      customerEmail: 'customer-six@example.com',
       date: 'April 09, 2026',
       itemsCount: 1,
       totalAmountEur: 120.0,
@@ -520,8 +522,8 @@ export default function App() {
     },
       {
       id: 'ORD-2026-5820',
-      customerName: 'Aminata Bangura',
-      customerEmail: 'aminata.bangura@freetown.sl',
+      customerName: 'Sample Customer Two',
+      customerEmail: 'customer-two@example.com',
       date: 'May 28, 2026',
       itemsCount: 2,
       totalAmountEur: 155.0,
@@ -531,8 +533,8 @@ export default function App() {
     },
       {
       id: 'ORD-2026-7712',
-      customerName: 'Marie Dupont',
-      customerEmail: 'marie.dupont@gmail.com',
+      customerName: 'Sample Customer',
+      customerEmail: 'customer-one@example.com',
       date: 'June 15, 2026',
       itemsCount: 1,
       totalAmountEur: 45.0,
@@ -542,8 +544,8 @@ export default function App() {
     },
       {
       id: 'ORD-2026-8103',
-      customerName: 'David Taylor',
-      customerEmail: 'david.taylor@london.uk',
+      customerName: 'Sample Customer Seven',
+      customerEmail: 'customer-seven@example.com',
       date: 'July 20, 2026',
       itemsCount: 3,
       totalAmountEur: 240.0,
@@ -553,8 +555,8 @@ export default function App() {
     },
       {
       id: 'ORD-2026-8891',
-      customerName: 'Sylvester Ghamoi',
-      customerEmail: 'sylvester@rainforestbuilder.com',
+      customerName: 'Demo Administrator',
+      customerEmail: 'demo-admin@example.com',
       date: 'August 02, 2026',
       itemsCount: 2,
       totalAmountEur: 145.0,
@@ -564,8 +566,8 @@ export default function App() {
     },
       {
       id: 'ORD-2026-9012',
-      customerName: 'Marie Dupont',
-      customerEmail: 'marie.dupont@gmail.com',
+      customerName: 'Sample Customer',
+      customerEmail: 'customer-one@example.com',
       date: 'August 06, 2026',
       itemsCount: 1,
       totalAmountEur: 95.0,
@@ -587,7 +589,9 @@ export default function App() {
     } catch (e) {
       console.warn('Failed to load saved orders:', e);
     }
-    return defaultOrders.filter((order) => !deletedOrderIds.has(order.id));
+    return window.location.hostname === 'localhost'
+      ? defaultOrders.filter((order) => !deletedOrderIds.has(order.id))
+      : [];
   });
 
   useEffect(() => {
