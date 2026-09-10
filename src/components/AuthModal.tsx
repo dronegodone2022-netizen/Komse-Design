@@ -67,6 +67,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onOpenContact,
   onRateOrder,
 }) => {
+  const isLocalhost = window.location.hostname === 'localhost';
   if (!isOpen) return null;
 
   // Auth form states
@@ -1176,13 +1177,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </button>
               </div>
 
-              {/* Demo Login Fast Action */}
-              <button
-                onClick={handleDemoLogin}
-                className="bg-[#C5A059]/15 hover:bg-[#C5A059]/25 text-[#9A7A38] hover:text-[#7C6026] border border-[#C5A059]/40 font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 cursor-pointer transition-colors text-[11px]"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-[#C5A059]" /> ⚡ Quick Demo Login
-              </button>
+              {isLocalhost && (
+                <button
+                  onClick={handleDemoLogin}
+                  className="bg-[#C5A059]/15 hover:bg-[#C5A059]/25 text-[#9A7A38] hover:text-[#7C6026] border border-[#C5A059]/40 font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 cursor-pointer transition-colors text-[11px]"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-[#C5A059]" /> Quick Demo Login
+                </button>
+              )}
             </div>
 
             {/* Success Feedback */}
