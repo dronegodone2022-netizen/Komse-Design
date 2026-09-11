@@ -16,7 +16,7 @@ View your app in AI Studio: https://ai.studio/apps/34cc0765-4c1f-4950-ba7a-900a6
 1. Install dependencies:
    `npm install`
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Copy the Stripe settings from [.env.example](.env.example) into your environment and set `STRIPE_SECRET_KEY` to a Stripe test or live secret key. Set `APP_URL` to the public URL where customers return after checkout. Enable PayPal and Apple Pay in Stripe Dashboard under Payment methods. Register and verify the production domain under Payment method domains for Apple Pay.
+3. Copy the Stripe settings from [.env.example](.env.example) into your environment and set `STRIPE_SECRET_KEY` to a Stripe test or live secret key. Set `STRIPE_WEBHOOK_SECRET` to the signing secret for `POST /api/stripe-webhook`, and set `APP_URL` to the public URL where customers return after checkout. Enable PayPal and Apple Pay in Stripe Dashboard under Payment methods. Register and verify the production domain under Payment method domains for Apple Pay.
 4. Run the app:
    `npm run dev`
 
@@ -28,4 +28,4 @@ For password reset links to work locally, add `http://localhost:3000/?reset_pass
 
 To enable Google signup, configure Google under Supabase **Authentication → Providers → Google** with a Google OAuth client ID and secret. Add `http://localhost:3000/?auth=google` to Supabase **Redirect URLs**, and add the Supabase callback URL shown in the provider settings to the Google Cloud OAuth client's authorized redirect URIs.
 
-Checkout uses Stripe-hosted payment pages with Stripe Dashboard-managed payment methods. Orders are added to the admin dashboard only after the returned Checkout Session is verified as paid. For production reliability, configure a Stripe webhook to repeat order fulfillment server-side rather than relying only on the browser return.
+Checkout uses Stripe-hosted payment pages with Stripe Dashboard-managed payment methods. Configure a Stripe Dashboard webhook for `https://YOUR_API_HOST/api/stripe-webhook` with the `checkout.session.completed` event. The webhook persists paid orders server-side; the browser return also verifies and upserts the session so customers still see confirmation immediately.

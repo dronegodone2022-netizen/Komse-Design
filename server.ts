@@ -7,6 +7,64 @@ import { createClient } from '@supabase/supabase-js';
 const app = express();
 const port = Number(process.env.PORT || process.env.SERVER_PORT || process.env.MAIL_PORT || 3001);
 
+const getOrderFromSession = (session: Stripe.Checkout.Session) => {
+  const totalAmountEur = (session.amount_total || 0) / 100;
+  const subtotalEur = Math.max(0, totalAmountEur - (totalAmountEur < 100 ? 7.5 : 0));
+  return {
+    user_id: session.metadata?.userId || null,
+    stripe_session_id: session.id,
+    customer_name: session.metadata?.customerName || session.customer_details?.name || 'Customer',
+    customer_email: session.customer_details?.email || session.customer_email || '',
+    subtotal_eur: subtotalEur,
+    shipping_eur: totalAmountEur - subtotalEur,
+    total_amount_eur: totalAmountEur,
+    items_count: Number(session.metadata?.itemsCount || 0),
+    items_summary: session.metadata?.itemsSummary || 'KOMSE DESIGN order',
+    status: 'Processing',
+    tracking_number: 'Pending assignment',
+  };
+};
+
+const persistPaidCheckout = async (session: Stripe.Checkout.Session) => {
+  const client = getSupabaseAdmin();
+  if (!client) throw new Error('Supabase order persistence is not configured.');
+  const order = getOrderFromSession(session);
+  if (!order.user_id) throw new Error('Checkout session is missing its user ID.');
+  const { error } = await client.from('orders').upsert(order, { onConflict: 'stripe_session_id' });
+  if (error) throw error;
+};
+
+app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  const stripe = getStripe();
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const signature = req.headers['stripe-signature'];
+  if (!stripe || !webhookSecret || typeof signature !== 'string') {
+    return res.status(503).json({ error: 'Stripe webhook is not configured.' });
+  }
+
+  let event: Stripe.Event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body, signature, webhookSecret);
+  } catch (error) {
+    console.error('Stripe webhook signature verification failed:', error);
+    return res.status(400).json({ error: 'Invalid Stripe webhook signature.' });
+  }
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object as Stripe.Checkout.Session;
+    if (session.payment_status === 'paid') {
+      try {
+        await persistPaidCheckout(session);
+      } catch (error) {
+        console.error('Paid checkout persistence failed:', error);
+        return res.status(500).json({ error: 'Unable to persist paid checkout.' });
+      }
+    }
+  }
+
+  return res.json({ received: true });
+});
+
 app.use(express.json({ limit: '32kb' }));
 app.use((req, res, next) => {
   const allowedOrigins = [
@@ -130,14 +188,15 @@ const countryCodeFor = (country?: string) => {
 
 app.post('/api/create-checkout-session', async (req, res) => {
   const stripe = getStripe();
-  const { items, customer, orderId } = req.body as {
+  const { items, customer, orderId, userId } = req.body as {
     items?: Array<{ name?: string; quantity?: number; priceEur?: number }>;
     customer?: { name?: string; email?: string; phone?: string; address?: string; city?: string; postalCode?: string; country?: string };
     orderId?: string;
+    userId?: string;
   };
 
   if (!stripe) return res.status(503).json({ error: 'Stripe payments are not configured.' });
-  if (!Array.isArray(items) || items.length === 0 || !customer?.email || !orderId) {
+  if (!Array.isArray(items) || items.length === 0 || !customer?.email || !orderId || !userId) {
     return res.status(400).json({ error: 'A valid cart, customer email, and order ID are required.' });
   }
 
@@ -146,6 +205,9 @@ app.post('/api/create-checkout-session', async (req, res) => {
     quantity: Math.max(1, Math.floor(item.quantity || 0)),
     priceEur: Number(item.priceEur || 0),
   }));
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(customer.email) || normalizedItems.some((item) => !Number.isFinite(item.priceEur) || item.priceEur <= 0)) {
+    return res.status(400).json({ error: 'Customer email and item prices must be valid.' });
+  }
   const lineItems = normalizedItems.map((item) => ({
     quantity: item.quantity,
     price_data: {
@@ -200,6 +262,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
       cancel_url: `${process.env.APP_URL || 'http://localhost:3000'}/?payment=cancelled`,
       metadata: {
         orderId,
+        userId,
         customerName: customer.name || 'Customer',
         itemsCount: String(items.reduce((count, item) => count + Math.max(1, Math.floor(item.quantity || 0)), 0)),
         itemsSummary: items.map((item) => `${item.quantity}x ${item.name || 'KOMSE DESIGN item'}`).join(', '),
@@ -221,6 +284,14 @@ app.get('/api/verify-checkout-session', async (req, res) => {
   try {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
     if (session.payment_status !== 'paid') return res.status(402).json({ error: 'Payment has not been completed.' });
+    if (getSupabaseAdmin() && session.metadata?.userId) {
+      try {
+        await persistPaidCheckout(session);
+      } catch (error) {
+        console.error('Completed checkout persistence failed:', error);
+        return res.status(502).json({ error: 'Unable to record completed order.' });
+      }
+    }
     return res.json({
       order: {
         id: session.metadata?.orderId || `KOMSE-${session.id.slice(-8).toUpperCase()}`,

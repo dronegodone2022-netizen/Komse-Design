@@ -804,7 +804,7 @@ export default function App() {
   const persistCompletedCheckout = (order: UserOrder, user: UserProfile) => {
     if (!supabase) return;
     const subtotalEur = Math.max(0, order.totalAmountEur - (order.totalAmountEur < 100 ? 7.5 : 0));
-    void supabase.from('orders').insert({
+    void supabase.from('orders').upsert({
       user_id: user.id,
       stripe_session_id: order.id,
       customer_name: order.customerName || 'Customer',
@@ -816,7 +816,7 @@ export default function App() {
       items_summary: order.itemsSummary,
       status: order.status,
       tracking_number: order.trackingNumber,
-    }).then(({ error }) => {
+    }, { onConflict: 'stripe_session_id' }).then(({ error }) => {
       if (error) console.error('Completed order persistence failed:', error);
     });
   };

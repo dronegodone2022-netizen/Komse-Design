@@ -119,6 +119,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orderId: `KOMSE-${Math.floor(100000 + Math.random() * 900000)}`,
+          userId: currentUser?.id,
           customer: {
             name: `${formData.firstName} ${formData.lastName}`.trim(),
             email: formData.email,
