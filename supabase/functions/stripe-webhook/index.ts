@@ -31,7 +31,20 @@ const sendPaidOrderEmail = async (order: ReturnType<typeof getOrderFromSession>)
   const text = ['Thank you for your KOMSE DESIGN order.', '', `Order: ${order.stripe_session_id}`, `Customer: ${order.customer_name}`, `Items: ${order.items_count}`, `Products: ${order.items_summary}`, `Total paid: EUR ${order.total_amount_eur}`, '', 'Your payment was received successfully.'].join('\n');
   const recipients = [order.customer_email, Deno.env.get('ADMIN_EMAIL')].filter(Boolean);
   for (const to of recipients) {
-    await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${hook}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ from, to, subject: `KOMSE DESIGN payment confirmation: ${order.stripe_session_id}`, text }) });
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${hook}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from,
+        to,
+        subject: `KOMSE DESIGN payment confirmation: ${order.stripe_session_id}`,
+        text,
+      }),
+    });
+    if (!response.ok) {
+      const details = await response.text();
+      throw new Error(`Resend rejected ${to}: ${response.status} ${details}`);
+    }
   }
 };
 
