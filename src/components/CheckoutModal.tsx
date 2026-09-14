@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { CartItem, CurrencyCode, UserOrder, UserProfile } from '../types';
 import { CURRENCIES } from '../data/products';
-import { apiUrl } from '../lib/api';
+import { apiUrl, supabaseFunctionUrl } from '../lib/api';
 import { COUNTRY_OPTIONS, detectDefaultCountry, getDialCode } from '../utils/currencyDetector';
 import { supabase } from '../lib/supabase';
 import { X, CheckCircle, Lock, Download } from 'lucide-react';
@@ -95,8 +95,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       const session = await supabase?.auth.getSession();
       const accessToken = session?.data.session?.access_token;
       if (!accessToken) throw new Error('Please sign in again to verify your payment.');
-      return fetch(apiUrl(`/api/verify-checkout-session?session_id=${encodeURIComponent(sessionId)}`), {
-        headers: { Authorization: `Bearer ${accessToken}` },
+      const functionUrl = supabaseFunctionUrl('stripe-checkout');
+      return fetch(functionUrl || apiUrl(`/api/verify-checkout-session?session_id=${encodeURIComponent(sessionId)}`), {
+        ...(functionUrl ? { method: 'POST', body: JSON.stringify({ action: 'verify', sessionId }) } : {}),
+        ...(functionUrl ? { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` } } : { headers: { Authorization: `Bearer ${accessToken}` } }),
       });
     };
     verifyCheckout()
@@ -126,7 +128,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       const session = await supabase?.auth.getSession();
       const accessToken = session?.data.session?.access_token;
       if (!accessToken) throw new Error('Please sign in before starting checkout.');
-      const response = await fetch(apiUrl('/api/create-checkout-session'), {
+      const functionUrl = supabaseFunctionUrl('stripe-checkout');
+      const response = await fetch(functionUrl || apiUrl('/api/create-checkout-session'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({

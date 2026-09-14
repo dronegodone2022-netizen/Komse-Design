@@ -31,3 +31,7 @@ For password reset links to work locally, add `http://localhost:3000/?reset_pass
 To enable Google signup, configure Google under Supabase **Authentication → Providers → Google** with a Google OAuth client ID and secret. Add `http://localhost:3000/?auth=google` to Supabase **Redirect URLs**, and add the Supabase callback URL shown in the provider settings to the Google Cloud OAuth client's authorized redirect URIs.
 
 Checkout uses Stripe-hosted payment pages with Stripe Dashboard-managed payment methods. Configure a Stripe Dashboard webhook for `https://YOUR_API_HOST/api/stripe-webhook` with the `checkout.session.completed` event. The webhook persists paid orders server-side; the browser return also verifies and upserts the session so customers still see confirmation immediately.
+
+### Supabase-only backend option
+
+The payment path can run without Render using the Edge Functions in `supabase/functions/stripe-checkout` and `supabase/functions/stripe-webhook`. Deploy them with the Supabase CLI, set the function secrets (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, `APP_URL`, and email settings), apply `supabase-migration.sql`, and configure Stripe's webhook URL as `https://YOUR_PROJECT.supabase.co/functions/v1/stripe-webhook`. Set `VITE_SUPABASE_FUNCTIONS_URL` to `https://YOUR_PROJECT.supabase.co/functions/v1` or let the frontend derive it from `VITE_SUPABASE_URL`.
