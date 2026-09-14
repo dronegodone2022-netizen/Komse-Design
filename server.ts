@@ -113,6 +113,14 @@ const getStripe = () => {
   return secretKey ? new Stripe(secretKey) : null;
 };
 
+const getAppUrl = () => {
+  const configuredUrl = String(process.env.APP_URL || '').trim().replace(/\/$/, '');
+  if (process.env.NODE_ENV === 'production' && /^https?:\/\/localhost(?::\d+)?$/i.test(configuredUrl)) {
+    return 'https://dronegodone2022-netizen.github.io/Komse-Design';
+  }
+  return configuredUrl || 'http://localhost:3000';
+};
+
 const getSupabaseAdmin = () => {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -333,8 +341,8 @@ app.post('/api/create-checkout-session', async (req, res) => {
       billing_address_collection: 'required',
       phone_number_collection: { enabled: true },
       shipping_address_collection: { allowed_countries: ['FR', 'GB', 'US', 'SL', 'SN', 'CI', 'GH', 'NG'] },
-      success_url: `${process.env.APP_URL || 'http://localhost:3000'}/?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.APP_URL || 'http://localhost:3000'}/?payment=cancelled`,
+      success_url: `${getAppUrl()}/?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${getAppUrl()}/?payment=cancelled`,
       metadata: {
         orderId,
         userId: authenticated.user.id,
