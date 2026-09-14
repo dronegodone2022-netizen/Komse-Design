@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState, useEffect, useRef } from 'react';
+import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { CurrencyCode, ActiveTab, CartItem, Product, ProductCategory, CustomDesignDetails, ReproductionRequest } from './types';
 import { PRODUCTS } from './data/products';
 import { TopBar } from './components/TopBar';
@@ -147,28 +147,21 @@ export default function App() {
   const [productsList, setProductsList] = useState<Product[]>(() => mergeProductsFromStorage());
 
   const notifyUsers = (action: 'added' | 'updated', product: Product) => {
+    if (!supabase) return;
     const recipients = usersList
       .map((user) => user.email)
       .filter((email): email is string => Boolean(email));
     if (recipients.length === 0) return;
 
-    void fetch(apiUrl('/api/product-notification'), {
+    void supabase.auth.getSession().then(({ data }) => fetch(apiUrl('/api/product-notification'), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.session?.access_token || ''}` },
       body: JSON.stringify({
         action,
         product: { name: product.name, category: product.category, price: product.price },
         recipients,
       }),
-    }).catch((error) => console.error('Product notification failed:', error));
-  };
-
-  const notifyAdminOfOrder = (order: UserOrder) => {
-    void fetch(apiUrl('/api/order-notification'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ order }),
-    }).catch((error) => console.error('Order notification failed:', error));
+    })).catch((error) => console.error('Product notification failed:', error));
   };
 
   const adminRequest = async (path: string, options: RequestInit = {}) => {
@@ -279,7 +272,6 @@ export default function App() {
   const [checkoutAfterAuth, setCheckoutAfterAuth] = useState(() => sessionStorage.getItem('komse_checkout_after_auth') === 'true');
   const [completeProfileForCheckout, setCompleteProfileForCheckout] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  const pendingCheckoutOrder = useRef<UserOrder | null>(null);
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [cartLoadedForUserId, setCartLoadedForUserId] = useState<string | null>(null);
@@ -801,38 +793,8 @@ export default function App() {
     showToast(`Manual order ${createdOrder.id} generated`);
   };
 
-  const persistCompletedCheckout = (order: UserOrder, user: UserProfile) => {
-    if (!supabase) return;
-    const subtotalEur = Math.max(0, order.totalAmountEur - (order.totalAmountEur < 100 ? 7.5 : 0));
-    void supabase.from('orders').upsert({
-      user_id: user.id,
-      stripe_session_id: order.id,
-      customer_name: order.customerName || 'Customer',
-      customer_email: order.customerEmail || user.email,
-      subtotal_eur: subtotalEur,
-      shipping_eur: order.totalAmountEur - subtotalEur,
-      total_amount_eur: order.totalAmountEur,
-      items_count: order.itemsCount,
-      items_summary: order.itemsSummary,
-      status: order.status,
-      tracking_number: order.trackingNumber,
-    }, { onConflict: 'stripe_session_id' }).then(({ error }) => {
-      if (error) console.error('Completed order persistence failed:', error);
-    });
-  };
-
-  useEffect(() => {
-    if (!currentUser || !pendingCheckoutOrder.current) return;
-    const order = pendingCheckoutOrder.current;
-    pendingCheckoutOrder.current = null;
-    persistCompletedCheckout(order, currentUser);
-  }, [currentUser]);
-
   const handleCompletedCheckout = (order: UserOrder) => {
     setUserOrders((prev) => (prev.some((existingOrder) => existingOrder.id === order.id) ? prev : [order, ...prev]));
-    if (currentUser) persistCompletedCheckout(order, currentUser);
-    else pendingCheckoutOrder.current = order;
-    notifyAdminOfOrder(order);
     showToast(`New order ${order.id} added to the Admin dashboard`);
   };
 
@@ -1091,8 +1053,16 @@ export default function App() {
     setWishlistIds((prev) => prev.filter((id) => id !== product.id));
   };
 
-  const handleProceedToCheckout = () => {
+  const handleProceedToCheckout = async () => {
     if (currentUser) {
+      const session = await supabase?.auth.getSession();
+      if (!session?.data.session) {
+        setCurrentUser(null);
+        setAuthInitialMode('login');
+        setAuthModalOpen(true);
+        showToast('Your session expired. Please sign in again before checkout.');
+        return;
+      }
       const profileComplete = Boolean(
         currentUser.name?.trim() &&
         currentUser.email?.trim() &&

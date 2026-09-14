@@ -3,6 +3,7 @@ import { CartItem, CurrencyCode, UserOrder, UserProfile } from '../types';
 import { CURRENCIES } from '../data/products';
 import { apiUrl } from '../lib/api';
 import { COUNTRY_OPTIONS, detectDefaultCountry, getDialCode } from '../utils/currencyDetector';
+import { supabase } from '../lib/supabase';
 import { X, CheckCircle, Lock, Download } from 'lucide-react';
 
 interface CheckoutModalProps {
@@ -90,7 +91,15 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     if (params.get('payment') !== 'success' || !sessionId || sessionStorage.getItem(`komse_paid_${sessionId}`)) return;
 
     setIsProcessing(true);
-    fetch(apiUrl(`/api/verify-checkout-session?session_id=${encodeURIComponent(sessionId)}`))
+    const verifyCheckout = async () => {
+      const session = await supabase?.auth.getSession();
+      const accessToken = session?.data.session?.access_token;
+      if (!accessToken) throw new Error('Please sign in again to verify your payment.');
+      return fetch(apiUrl(`/api/verify-checkout-session?session_id=${encodeURIComponent(sessionId)}`), {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+    };
+    verifyCheckout()
       .then(async (response) => {
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || 'Unable to verify payment.');
@@ -114,12 +123,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     setIsProcessing(true);
     setPaymentError('');
     try {
+      const session = await supabase?.auth.getSession();
+      const accessToken = session?.data.session?.access_token;
+      if (!accessToken) throw new Error('Please sign in before starting checkout.');
       const response = await fetch(apiUrl('/api/create-checkout-session'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({
           orderId: `KOMSE-${Math.floor(100000 + Math.random() * 900000)}`,
-          userId: currentUser?.id,
           customer: {
             name: `${formData.firstName} ${formData.lastName}`.trim(),
             email: formData.email,
@@ -130,17 +141,18 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             country: formData.country,
           },
           items: cartItems.map((item) => ({
-            name: `${item.product.name} (${item.selectedSize}, ${item.selectedColor})`,
+            productId: item.product.id,
             quantity: item.quantity,
-            priceEur: item.product.price,
+            selectedSize: item.selectedSize,
+            selectedColor: item.selectedColor,
           })),
         }),
       });
-      const result = await response.json();
+      const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.url) throw new Error(result.error || 'Unable to start secure checkout.');
       window.location.assign(result.url);
     } catch (error) {
-      setPaymentError(error instanceof Error ? error.message : 'Unable to start secure checkout.');
+      setPaymentError(error instanceof Error ? error.message : 'Unable to start secure checkout. Check that the payment server is online.');
       setIsProcessing(false);
     }
   };

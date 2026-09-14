@@ -31,15 +31,28 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run lint
+
+      - name: Validate frontend configuration
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          test -n "$VITE_API_URL" || (echo "Missing GitHub variable VITE_API_URL" && exit 1)
+          test -n "$VITE_SUPABASE_URL" || (echo "Missing GitHub variable VITE_SUPABASE_URL" && exit 1)
+          test -n "$VITE_SUPABASE_ANON_KEY" || (echo "Missing GitHub secret VITE_SUPABASE_ANON_KEY" && exit 1)
 
       - name: Build frontend
         run: npm run build
         env:
           VITE_BASE_PATH: /Komse-Design/
-          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://example.com' }}
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || 'https://example-project.supabase.co' }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'demo-anon-key' }}
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

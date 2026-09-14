@@ -9,14 +9,15 @@ const port = Number(process.env.PORT || process.env.SERVER_PORT || process.env.M
 
 const getOrderFromSession = (session: Stripe.Checkout.Session) => {
   const totalAmountEur = (session.amount_total || 0) / 100;
-  const subtotalEur = Math.max(0, totalAmountEur - (totalAmountEur < 100 ? 7.5 : 0));
+  const subtotalEur = Number(session.metadata?.subtotalEur || totalAmountEur);
+  const shippingEur = Number(session.metadata?.shippingEur || Math.max(0, totalAmountEur - subtotalEur));
   return {
     user_id: session.metadata?.userId || null,
     stripe_session_id: session.id,
     customer_name: session.metadata?.customerName || session.customer_details?.name || 'Customer',
     customer_email: session.customer_details?.email || session.customer_email || '',
     subtotal_eur: subtotalEur,
-    shipping_eur: totalAmountEur - subtotalEur,
+    shipping_eur: shippingEur,
     total_amount_eur: totalAmountEur,
     items_count: Number(session.metadata?.itemsCount || 0),
     items_summary: session.metadata?.itemsSummary || 'KOMSE DESIGN order',
@@ -32,6 +33,26 @@ const persistPaidCheckout = async (session: Stripe.Checkout.Session) => {
   if (!order.user_id) throw new Error('Checkout session is missing its user ID.');
   const { error } = await client.from('orders').upsert(order, { onConflict: 'stripe_session_id' });
   if (error) throw error;
+
+  const { data: emailClaim, error: claimError } = await client
+    .from('orders')
+    .update({ email_sent_at: new Date().toISOString() })
+    .eq('stripe_session_id', order.stripe_session_id)
+    .is('email_sent_at', null)
+    .select('stripe_session_id')
+    .maybeSingle();
+  if (claimError) throw claimError;
+  if (emailClaim) {
+    try {
+      await sendPaidOrderEmail(order);
+    } catch (error) {
+      await client
+        .from('orders')
+        .update({ email_sent_at: null })
+        .eq('stripe_session_id', order.stripe_session_id);
+      throw error;
+    }
+  }
 };
 
 app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
@@ -50,7 +71,7 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
     return res.status(400).json({ error: 'Invalid Stripe webhook signature.' });
   }
 
-  if (event.type === 'checkout.session.completed') {
+  if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') {
     const session = event.data.object as Stripe.Checkout.Session;
     if (session.payment_status === 'paid') {
       try {
@@ -96,6 +117,53 @@ const getSupabaseAdmin = () => {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   return url && serviceRoleKey ? createClient(url, serviceRoleKey) : null;
+};
+
+const builtInCatalog: Record<string, { name: string; priceEur: number; inStock: boolean }> = {
+  'p-1': { name: 'Love & Loyalty Jersey', priceEur: 50, inStock: true },
+  'p-2': { name: 'OverSize Mesh Baseball Shirt', priceEur: 50, inStock: true },
+  'p-3': { name: 'Unisex Mesh Basketball Cap', priceEur: 25, inStock: true },
+  'p-4': { name: 'Unisex Denim Jacket & Pants Set', priceEur: 100, inStock: false },
+  'p-5': { name: 'Sierra Leone 66 Independence Jersey', priceEur: 50, inStock: true },
+  'p-6': { name: 'Unisex Taffeta Tracksuit', priceEur: 100, inStock: true },
+  'p-8': { name: 'Unisex Green White Blue Overall', priceEur: 50, inStock: false },
+  'p-9': { name: '+232 Baseball Jersey', priceEur: 50, inStock: false },
+  'p-10': { name: 'Unisex Visor Cap', priceEur: 25, inStock: false },
+  'p-11': { name: 'Unisex Turtleneck Sweater', priceEur: 50, inStock: false },
+};
+
+const requireUser = async (req: express.Request, res: express.Response) => {
+  const client = getSupabaseAdmin();
+  const authorization = req.headers.authorization || '';
+  const token = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
+  if (!client) {
+    res.status(503).json({ error: 'Customer authentication is not configured on the server. Add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.' });
+    return null;
+  }
+  if (!token) {
+    res.status(401).json({ error: 'A valid customer session is required.' });
+    return null;
+  }
+
+  const { data, error } = await client.auth.getUser(token);
+  if (error || !data.user) {
+    res.status(401).json({ error: 'A valid customer session is required.' });
+    return null;
+  }
+  return { client, user: data.user };
+};
+
+const getCatalog = async (client: ReturnType<typeof getSupabaseAdmin>) => {
+  const catalog = new Map(Object.entries(builtInCatalog));
+  if (!client) return catalog;
+  const { data } = await client.from('products').select('product_data');
+  for (const row of data || []) {
+    const product = row.product_data as { id?: string; name?: string; price?: number; inStock?: boolean } | null;
+    if (product?.id && typeof product.name === 'string' && typeof product.price === 'number') {
+      catalog.set(product.id, { name: product.name, priceEur: product.price, inStock: product.inStock !== false });
+    }
+  }
+  return catalog;
 };
 
 const requireAdmin = async (req: express.Request, res: express.Response) => {
@@ -188,32 +256,40 @@ const countryCodeFor = (country?: string) => {
 
 app.post('/api/create-checkout-session', async (req, res) => {
   const stripe = getStripe();
-  const { items, customer, orderId, userId } = req.body as {
-    items?: Array<{ name?: string; quantity?: number; priceEur?: number }>;
+  if (!stripe) return res.status(503).json({ error: 'Stripe payments are not configured on the server. Add STRIPE_SECRET_KEY.' });
+  const authenticated = await requireUser(req, res);
+  if (!authenticated) return;
+  const { items, customer, orderId } = req.body as {
+    items?: Array<{ productId?: string; quantity?: number; selectedSize?: string; selectedColor?: string }>;
     customer?: { name?: string; email?: string; phone?: string; address?: string; city?: string; postalCode?: string; country?: string };
     orderId?: string;
-    userId?: string;
   };
 
-  if (!stripe) return res.status(503).json({ error: 'Stripe payments are not configured.' });
-  if (!Array.isArray(items) || items.length === 0 || !customer?.email || !orderId || !userId) {
+  if (!Array.isArray(items) || items.length === 0 || !customer?.email || !orderId) {
     return res.status(400).json({ error: 'A valid cart, customer email, and order ID are required.' });
   }
 
-  const normalizedItems = items.map((item) => ({
-    name: item.name || 'KOMSE DESIGN item',
-    quantity: Math.max(1, Math.floor(item.quantity || 0)),
-    priceEur: Number(item.priceEur || 0),
-  }));
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(customer.email) || normalizedItems.some((item) => !Number.isFinite(item.priceEur) || item.priceEur <= 0)) {
-    return res.status(400).json({ error: 'Customer email and item prices must be valid.' });
+  const catalog = await getCatalog(authenticated.client);
+  const normalizedItems = items.map((item) => {
+    const product = item.productId ? catalog.get(item.productId) : undefined;
+    return {
+      name: product?.name || '',
+      quantity: Math.max(1, Math.floor(item.quantity || 0)),
+      priceEur: product?.priceEur || 0,
+      inStock: product?.inStock === true,
+      selectedSize: item.selectedSize || '',
+      selectedColor: item.selectedColor || '',
+    };
+  });
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(customer.email) || normalizedItems.some((item) => !item.name || item.priceEur <= 0 || !item.inStock)) {
+    return res.status(400).json({ error: 'The cart contains an invalid or unavailable product.' });
   }
   const lineItems = normalizedItems.map((item) => ({
     quantity: item.quantity,
     price_data: {
       currency: 'eur',
       unit_amount: Math.round(item.priceEur * 100),
-      product_data: { name: item.name },
+      product_data: { name: `${item.name}${item.selectedSize ? ` (${item.selectedSize}, ${item.selectedColor})` : ''}` },
     },
   }));
 
@@ -254,7 +330,6 @@ app.post('/api/create-checkout-session', async (req, res) => {
       mode: 'payment',
       line_items: lineItems,
       customer: stripeCustomer.id,
-      customer_email: customer.email,
       billing_address_collection: 'required',
       phone_number_collection: { enabled: true },
       shipping_address_collection: { allowed_countries: ['FR', 'GB', 'US', 'SL', 'SN', 'CI', 'GH', 'NG'] },
@@ -262,10 +337,12 @@ app.post('/api/create-checkout-session', async (req, res) => {
       cancel_url: `${process.env.APP_URL || 'http://localhost:3000'}/?payment=cancelled`,
       metadata: {
         orderId,
-        userId,
+        userId: authenticated.user.id,
         customerName: customer.name || 'Customer',
+        subtotalEur: subtotalEur.toFixed(2),
+        shippingEur: (subtotalEur < 100 ? 7.5 : 0).toFixed(2),
         itemsCount: String(items.reduce((count, item) => count + Math.max(1, Math.floor(item.quantity || 0)), 0)),
-        itemsSummary: items.map((item) => `${item.quantity}x ${item.name || 'KOMSE DESIGN item'}`).join(', '),
+        itemsSummary: normalizedItems.map((item) => `${item.quantity}x ${item.name}`).join(', '),
       },
     });
     return res.json({ url: session.url });
@@ -277,13 +354,18 @@ app.post('/api/create-checkout-session', async (req, res) => {
 
 app.get('/api/verify-checkout-session', async (req, res) => {
   const stripe = getStripe();
+  if (!stripe) return res.status(503).json({ error: 'Stripe payments are not configured on the server. Add STRIPE_SECRET_KEY.' });
+  const authenticated = await requireUser(req, res);
+  if (!authenticated) return;
   const sessionId = typeof req.query.session_id === 'string' ? req.query.session_id : '';
-  if (!stripe) return res.status(503).json({ error: 'Stripe payments are not configured.' });
   if (!sessionId) return res.status(400).json({ error: 'A checkout session ID is required.' });
 
   try {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
     if (session.payment_status !== 'paid') return res.status(402).json({ error: 'Payment has not been completed.' });
+    if (session.metadata?.userId !== authenticated.user.id) {
+      return res.status(403).json({ error: 'This payment does not belong to the signed-in customer.' });
+    }
     if (getSupabaseAdmin() && session.metadata?.userId) {
       try {
         await persistPaidCheckout(session);
@@ -323,7 +405,48 @@ const getTransporter = () => {
   });
 };
 
+const sendPaidOrderEmail = async (order: ReturnType<typeof getOrderFromSession>) => {
+  const transporter = getTransporter();
+  const mailFrom = process.env.MAIL_FROM || process.env.SMTP_USER;
+  if (!transporter || !mailFrom) {
+    console.warn('Payment email skipped: SMTP environment variables are not configured.');
+    return;
+  }
+  if (!order.customer_email) {
+    console.warn(`Payment email skipped: checkout ${order.stripe_session_id} has no customer email.`);
+    return;
+  }
+
+  const message = {
+    from: mailFrom,
+    subject: `KOMSE DESIGN payment confirmation: ${order.stripe_session_id}`,
+    text: [
+      'Thank you for your KOMSE DESIGN order.',
+      '',
+      `Order: ${order.stripe_session_id}`,
+      `Customer: ${order.customer_name}`,
+      `Items: ${order.items_count}`,
+      `Products: ${order.items_summary}`,
+      `Total paid: EUR ${order.total_amount_eur}`,
+      '',
+      'Your payment was received successfully. We will send further updates as your order progresses.',
+    ].join('\n'),
+  };
+  await transporter.sendMail({ ...message, to: order.customer_email });
+
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (adminEmail) {
+    await transporter.sendMail({
+      ...message,
+      to: adminEmail,
+      subject: `New KOMSE DESIGN order: ${order.stripe_session_id}`,
+    });
+  }
+};
+
 app.post('/api/product-notification', async (req, res) => {
+  const client = await requireAdmin(req, res);
+  if (!client) return;
   const { action, product, recipients } = req.body as {
     action?: 'added' | 'updated';
     product?: { name?: string; category?: string; price?: number; image?: string };
@@ -366,6 +489,8 @@ app.post('/api/product-notification', async (req, res) => {
 });
 
 app.post('/api/order-notification', async (req, res) => {
+  const client = await requireAdmin(req, res);
+  if (!client) return;
   const { order } = req.body as {
     order?: {
       id?: string;

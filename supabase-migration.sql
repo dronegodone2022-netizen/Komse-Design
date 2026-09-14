@@ -10,7 +10,8 @@ using (true);
 
 alter table public.orders
   add column if not exists items_count integer not null default 0,
-  add column if not exists items_summary text not null default '';
+  add column if not exists items_summary text not null default '',
+  add column if not exists email_sent_at timestamptz;
 
 -- Keep customer shipping and contact details in the profile row.
 alter table public.profiles

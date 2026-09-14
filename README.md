@@ -22,6 +22,8 @@ View your app in AI Studio: https://ai.studio/apps/34cc0765-4c1f-4950-ba7a-900a6
 
 For GitHub Pages project hosting, this repository uses `/Komse-Design/` as its production base path. Set `VITE_API_URL` to the deployed Express backend URL before building. GitHub Pages can host the Vite frontend only; the Express server must run on a separate backend host. Set that backend's `FRONTEND_URL` to `https://dronegodone2022-netizen.github.io`.
 
+GitHub Actions validates and deploys the frontend, but it cannot run an interactive Stripe checkout or host the payment webhook. For end-to-end payment testing, deploy the Node backend first (Render or a Hostinger Node.js service), configure its server-only environment variables, and point the GitHub Actions `VITE_API_URL` variable to that backend. When moving the frontend to Hostinger, keep the same backend URL or deploy the backend there as well; update Stripe's webhook endpoint and `APP_URL` to the final public URLs.
+
 The Node backend starts with `npm start` and exposes `GET /health` for deployment health checks. Deploy the repository root to a Node host, set the server environment variables from `.env.example`, and use the resulting backend URL as the frontend `VITE_API_URL` value.
 
 For password reset links to work locally, add `http://localhost:3000/?reset_password=1` to Supabase **Authentication → URL Configuration → Redirect URLs**. Add the equivalent production URL before deploying.
