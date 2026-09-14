@@ -41,16 +41,19 @@ const persistPaidCheckout = async (session: Stripe.Checkout.Session) => {
     .is('email_sent_at', null)
     .select('stripe_session_id')
     .maybeSingle();
-  if (claimError) throw claimError;
+  if (claimError) {
+    console.error('Payment email claim failed; order was recorded:', claimError);
+    return;
+  }
   if (emailClaim) {
     try {
       await sendPaidOrderEmail(order);
     } catch (error) {
+      console.error('Payment email delivery failed; order was recorded:', error);
       await client
         .from('orders')
         .update({ email_sent_at: null })
         .eq('stripe_session_id', order.stripe_session_id);
-      throw error;
     }
   }
 };
