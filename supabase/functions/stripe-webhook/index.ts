@@ -39,7 +39,7 @@ Deno.serve(async (request) => {
   if (request.method !== 'POST') return json({ error: 'POST is required.' }, 405);
   const signature = request.headers.get('stripe-signature');
   const secret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
-  const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, { apiVersion: '2025-03-31.basil' });
+  const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!);
   if (!signature || !secret) return json({ error: 'Stripe webhook is not configured.' }, 503);
   let event: Stripe.Event;
   try {

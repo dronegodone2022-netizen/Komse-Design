@@ -28,7 +28,7 @@ const getClients = () => {
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   return {
     admin: createClient(supabaseUrl, serviceRoleKey),
-    stripe: new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, { apiVersion: '2025-03-31.basil' }),
+    stripe: new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!),
   };
 };
 
@@ -53,8 +53,14 @@ const getCatalog = async (admin: ReturnType<typeof createClient>) => {
 };
 
 const appUrl = () => {
-  const value = (Deno.env.get('APP_URL') || '').replace(/\/$/, '');
-  return value || 'https://dronegodone2022-netizen.github.io/Komse-Design';
+  const configured = (Deno.env.get('APP_URL') || '').trim().replace(/^APP_URL\s*=\s*/i, '').replace(/^['"]|['"]$/g, '').replace(/\/$/, '');
+  try {
+    const parsed = new URL(configured);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return parsed.toString().replace(/\/$/, '');
+  } catch {
+    console.warn('Invalid APP_URL secret; using the public GitHub Pages URL.');
+  }
+  return 'https://dronegodone2022-netizen.github.io/Komse-Design';
 };
 
 Deno.serve(async (request) => {
@@ -106,6 +112,6 @@ Deno.serve(async (request) => {
     return json({ url: session.url });
   } catch (error) {
     console.error('Stripe checkout function failed:', error);
-    return json({ error: 'Unable to start secure checkout.' }, 502);
+    return json({ error: `Unable to start secure checkout: ${error instanceof Error ? error.message : 'Payment provider request failed.'}` }, 502);
   }
 });
