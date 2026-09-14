@@ -13,6 +13,7 @@ const getOrderFromSession = (session: Stripe.Checkout.Session) => {
   const shippingEur = Number(session.metadata?.shippingEur || Math.max(0, totalAmountEur - subtotalEur));
   return {
     user_id: session.metadata?.userId || null,
+    order_id: session.metadata?.orderId || `KOMSE-${session.id.slice(-8).toUpperCase()}`,
     stripe_session_id: session.id,
     customer_name: session.metadata?.customerName || session.customer_details?.name || 'Customer',
     customer_email: session.customer_details?.email || session.customer_email || '',

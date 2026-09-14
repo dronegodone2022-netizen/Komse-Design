@@ -73,7 +73,7 @@ const writeDeletedIds = (key: string, ids: Set<string>) => {
 };
 
 const orderFromRow = (row: Record<string, unknown>): UserOrder => ({
-  id: typeof row.stripe_session_id === 'string' ? row.stripe_session_id : String(row.id),
+  id: typeof row.order_id === 'string' && row.order_id ? row.order_id : `KOMSE-${String(row.id).slice(-8).toUpperCase()}`,
   customerName: typeof row.customer_name === 'string' ? row.customer_name : undefined,
   customerEmail: typeof row.customer_email === 'string' ? row.customer_email : undefined,
   date: typeof row.created_at === 'string' ? new Date(row.created_at).toLocaleDateString('en-US', { month: 'long', day: '2-digit', year: 'numeric' }) : '',

@@ -11,7 +11,12 @@ using (true);
 alter table public.orders
   add column if not exists items_count integer not null default 0,
   add column if not exists items_summary text not null default '',
-  add column if not exists email_sent_at timestamptz;
+  add column if not exists email_sent_at timestamptz,
+  add column if not exists order_id text;
+
+update public.orders
+set order_id = concat('KOMSE-', upper(substr(replace(stripe_session_id, 'cs_', ''), 1, 8)))
+where order_id is null;
 
 -- Keep customer shipping and contact details in the profile row.
 alter table public.profiles
