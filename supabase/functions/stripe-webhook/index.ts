@@ -3,7 +3,20 @@ import { createClient } from 'npm:@supabase/supabase-js@2.115.0';
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
-const publicAppUrl = () => (Deno.env.get('APP_URL') || 'https://dronegodone2022-netizen.github.io/Komse-Design').replace(/\/$/, '');
+const publicAppUrl = () => {
+  const configured = (Deno.env.get('APP_URL') || '')
+    .trim()
+    .replace(/^APP_URL\s*=\s*/i, '')
+    .replace(/^['"]|['"]$/g, '')
+    .replace(/\/$/, '');
+  try {
+    const parsed = new URL(configured);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return parsed.toString().replace(/\/$/, '');
+  } catch {
+    console.warn('Invalid APP_URL secret; using the Hostinger production URL.');
+  }
+  return 'https://komsedesign.com';
+};
 
 const formatAddress = (address?: Stripe.Address | null, name?: string | null) => {
   if (!address) return 'Shipping address was not provided.';
@@ -48,16 +61,21 @@ const sendPaidOrderEmail = async (order: ReturnType<typeof getOrderFromSession>)
   const productLines = items.length
     ? items.map((item) => `${item.quantity || 1}x ${item.name || 'Product'}${item.productId ? `\n  ${publicAppUrl()}/?product=${encodeURIComponent(item.productId)}` : ''}${item.selectedSize ? `\n  Size: ${item.selectedSize}${item.selectedColor ? `, Color: ${item.selectedColor}` : ''}` : ''}`).join('\n')
     : order.items_summary;
-  const text = ['Thank you for your KOMSE DESIGN order.', '', `Order: ${orderReference}`, `Customer name: ${order.customer_name}`, `Customer email: ${order.customer_email}`, `Items: ${order.items_count}`, '', 'Products:', productLines, '', `Shipping address: ${order.shipping_address}`, `Total paid: EUR ${order.total_amount_eur}`, '', 'Your payment was received successfully.'].join('\n');
-  const recipients = [order.customer_email, Deno.env.get('ADMIN_EMAIL')].filter(Boolean);
-  for (const to of recipients) {
+  const orderDetails = [`Order: ${orderReference}`, `Customer name: ${order.customer_name}`, `Customer email: ${order.customer_email}`, `Items: ${order.items_count}`, '', 'Products:', productLines, '', `Shipping address: ${order.shipping_address}`, `Total paid: EUR ${order.total_amount_eur}`].join('\n');
+  const emails = [
+    { to: order.customer_email, subject: `KOMSE DESIGN payment confirmation: ${orderReference}`, text: ['Thank you for your KOMSE DESIGN order.', '', orderDetails, '', 'Your payment was received successfully.'].join('\n') },
+    Deno.env.get('ADMIN_EMAIL')
+      ? { to: Deno.env.get('ADMIN_EMAIL')!, subject: `New KOMSE DESIGN order: ${orderReference}`, text: ['New customer order received.', '', orderDetails].join('\n') }
+      : null,
+  ].filter((email): email is { to: string; subject: string; text: string } => Boolean(email));
+  for (const { to, subject, text } of emails) {
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${hook}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         from,
         to,
-        subject: `KOMSE DESIGN payment confirmation: ${orderReference}`,
+        subject,
         text,
       }),
     });
