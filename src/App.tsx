@@ -766,9 +766,14 @@ export default function App() {
   // Order CRUD Handlers for Admin Panel
   const handleUpdateOrderStatus = (orderId: string, status: UserOrder['status'], trackingNumber?: string) => {
     if (supabase) {
-      void adminRequest(`/api/admin/orders/${encodeURIComponent(orderId)}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status, trackingNumber }),
+      void supabase.functions.invoke('admin-order-update', {
+        body: { orderId, status, trackingNumber },
+      }).then(async ({ error }) => {
+        if (!error) return;
+        await adminRequest(`/api/admin/orders/${encodeURIComponent(orderId)}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status, trackingNumber }),
+        });
       }).catch((error) => {
         console.error('Order update failed:', error);
         showToast(`Order could not be updated: ${error.message}`);
