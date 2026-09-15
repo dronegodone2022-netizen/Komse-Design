@@ -7,6 +7,9 @@ export default defineConfig(() => {
   return {
     base: process.env.VITE_BASE_PATH || (process.env.NODE_ENV === 'production' ? '/Komse-Design/' : '/'),
     plugins: [react(), tailwindcss()],
+    build: {
+      chunkSizeWarningLimit: 1000,
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
