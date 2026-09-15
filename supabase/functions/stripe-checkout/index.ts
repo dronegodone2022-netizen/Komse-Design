@@ -58,9 +58,9 @@ const appUrl = () => {
     const parsed = new URL(configured);
     if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return parsed.toString().replace(/\/$/, '');
   } catch {
-    console.warn('Invalid APP_URL secret; using the public GitHub Pages URL.');
+    console.warn('Invalid APP_URL secret; using the Hostinger production URL.');
   }
-  return 'https://dronegodone2022-netizen.github.io/Komse-Design';
+  return 'https://komsedesign.com';
 };
 
 Deno.serve(async (request) => {
