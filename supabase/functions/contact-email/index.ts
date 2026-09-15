@@ -53,7 +53,7 @@ Deno.serve(async (request) => {
 
   if (!response.ok) {
     console.error('Resend contact email failed:', response.status, await response.text());
-    return json({ error: 'Unable to send your message right now.' }, 502);
+    return json({ error: `Email provider rejected the message (${response.status}).` }, 502);
   }
 
   return json({ sent: true });
