@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Product, UserOrder, UserProfile, ProductCategory, CurrencyCode, ReproductionRequest } from '../types';
 import { CURRENCIES } from '../data/products';
 import { supabase } from '../lib/supabase';
@@ -222,91 +222,35 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [activityCategoryFilter, setActivityCategoryFilter] = useState<string>('All');
   const [activitySearch, setActivitySearch] = useState<string>('');
 
-  const [activityLogs, setActivityLogs] = useState<ActivityLogItem[]>([
-    {
-      id: 'log-101',
-      timestamp: 'Today at 18:15',
-      category: 'registration',
-      action: 'New User Registration',
-      details: 'A sample customer registered a new account.',
-      actorName: 'Sample Customer',
-      actorEmail: 'customer-two@example.com',
-      badgeText: 'USER REGISTERED',
-      badgeStyle: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-      targetId: 'usr-103',
-    },
-    {
-      id: 'log-102',
-      timestamp: 'Today at 17:40',
-      category: 'order',
-      action: 'Order Status Change',
-      details: 'Order ORD-2026-8891 status updated to SHIPPED (Tracking: DHL-882194-FR).',
-      actorName: 'Demo Administrator',
-      actorEmail: 'demo-admin@example.com',
-      badgeText: 'ORDER SHIPPED',
-      badgeStyle: 'bg-blue-100 text-blue-800 border-blue-300',
-      targetId: 'ORD-2026-8891',
-    },
-    {
-      id: 'log-103',
-      timestamp: 'Today at 15:22',
-      category: 'policy',
-      action: 'Password Reset Issued',
-      details: 'Admin issued a temporary password reset token for a sample account.',
-      actorName: 'Demo Administrator',
-      actorEmail: 'demo-admin@example.com',
-      badgeText: 'PASSWORD RESET',
-      badgeStyle: 'bg-amber-100 text-amber-800 border-amber-300',
-      targetId: 'usr-101',
-    },
-    {
-      id: 'log-104',
-      timestamp: 'August 07, 2026 at 11:05',
-      category: 'registration',
-      action: 'New User Registration',
-      details: 'A sample customer created a profile.',
-      actorName: 'Sample Customer',
-      actorEmail: 'customer-one@example.com',
-      badgeText: 'USER REGISTERED',
-      badgeStyle: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-      targetId: 'usr-102',
-    },
-    {
-      id: 'log-105',
-      timestamp: 'August 06, 2026 at 09:30',
-      category: 'order',
-      action: 'New Purchase Order',
-      details: 'Sample order ORD-2026-7712 was placed (€45.00 - Heritage Black Tee).',
-      actorName: 'Sample Customer',
-      actorEmail: 'customer-one@example.com',
-      badgeText: 'NEW ORDER',
-      badgeStyle: 'bg-purple-100 text-purple-800 border-purple-300',
-      targetId: 'ORD-2026-7712',
-    },
-    {
-      id: 'log-106',
-      timestamp: 'August 05, 2026 at 14:12',
-      category: 'policy',
-      action: 'Policy Enforcement Audit',
-      details: 'Compliance audit completed. 0 policy violations detected on recent customer actions.',
-      actorName: 'System Auditor',
-      badgeText: 'POLICY AUDIT',
-      badgeStyle: 'bg-stone-200 text-stone-800 border-stone-300',
-    },
-    {
-      id: 'log-107',
-      timestamp: 'August 04, 2026 at 16:50',
-      category: 'catalog',
-      action: 'Catalog Inventory Update',
-      details: 'Product "Freetown Gold Heavyweight Tee" inventory updated to IN STOCK.',
-      actorName: 'Admin Inventory',
-      badgeText: 'CATALOG UPDATE',
-      badgeStyle: 'bg-indigo-100 text-indigo-800 border-indigo-300',
-      targetId: 'p-1',
-    },
-  ]);
+  const [activityLogs, setActivityLogs] = useState<ActivityLogItem[]>([]);
 
-  const addActivityLog = (
+  useEffect(() => {
+    if (!supabase || !isOpen) return;
+    const loadActivityLogs = async () => {
+      const { data, error } = await supabase
+        .from('activity_logs')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) {
+        console.error('Activity log load failed:', error);
+        return;
+      }
+      setActivityLogs((data || []).map((row) => ({
+        id: String(row.id),
+        timestamp: new Date(String(row.created_at)).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }),
+        category: row.category as ActivityLogItem['category'],
+        action: String(row.action),
+        details: String(row.details),
+        actorName: String(row.actor_name),
+        actorEmail: typeof row.actor_email === 'string' ? row.actor_email : undefined,
+        badgeText: String(row.badge_text),
+        badgeStyle: String(row.badge_style),
+        targetId: typeof row.target_id === 'string' ? row.target_id : undefined,
+      })));
+    };
+    void loadActivityLogs();
+  }, [isOpen]);
+  const addActivityLog = async (
     category: 'registration' | 'order' | 'policy' | 'catalog',
     action: string,
     details: string,
@@ -329,6 +273,20 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       targetId,
     };
     setActivityLogs((prev) => [newEntry, ...prev]);
+    if (supabase) {
+      const { data: userData } = await supabase.auth.getUser();
+      const { error } = await supabase.from('activity_logs').insert({
+        category,
+        action,
+        details,
+        actor_name: actorName,
+        actor_email: actorEmail || userData.user?.email || null,
+        badge_text: badgeText,
+        badge_style: badgeStyle,
+        target_id: targetId || null,
+      });
+      if (error) console.error('Activity log save failed:', error);
+    }
   };
 
   const [userFormData, setUserFormData] = useState({

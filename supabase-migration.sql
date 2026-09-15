@@ -14,6 +14,41 @@ alter table public.orders
   add column if not exists email_sent_at timestamptz,
   add column if not exists order_id text;
 
+create table if not exists public.activity_logs (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  category text not null,
+  action text not null,
+  details text not null,
+  actor_name text not null,
+  actor_email text,
+  badge_text text not null,
+  badge_style text not null,
+  target_id text
+);
+
+alter table public.activity_logs enable row level security;
+
+drop policy if exists "Admins can view activity logs" on public.activity_logs;
+create policy "Admins can view activity logs"
+on public.activity_logs for select
+using (exists (
+  select 1 from public.profiles
+  where profiles.id = auth.uid()
+    and profiles.role = 'Admin'
+    and profiles.status = 'Active'
+));
+
+drop policy if exists "Admins can create activity logs" on public.activity_logs;
+create policy "Admins can create activity logs"
+on public.activity_logs for insert
+with check (exists (
+  select 1 from public.profiles
+  where profiles.id = auth.uid()
+    and profiles.role = 'Admin'
+    and profiles.status = 'Active'
+));
+
 update public.orders
 set order_id = concat('KOMSE-', upper(substr(replace(stripe_session_id, 'cs_', ''), 1, 8)))
 where order_id is null;
