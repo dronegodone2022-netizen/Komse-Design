@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Mail, Phone, MapPin, Send, Check } from 'lucide-react';
+import { supabaseFunctionUrl } from '../lib/api';
 
 interface ContactModalProps {
   isOpen: boolean;
@@ -7,14 +8,33 @@ interface ContactModalProps {
 }
 
 export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) => {
-  if (!isOpen) return null;
-
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
   const [formData, setFormData] = useState({ name: '', email: '', subject: 'Custom Order Inquiry', message: '' });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSent(true);
+    setSending(true);
+    setError('');
+    try {
+      const functionUrl = supabaseFunctionUrl('contact-email');
+      if (!functionUrl) throw new Error('Email service is not configured.');
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Unable to send your message right now.');
+      setSent(true);
+    } catch (submissionError) {
+      setError(submissionError instanceof Error ? submissionError.message : 'Unable to send your message right now.');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -97,6 +117,8 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
               />
             </div>
 
+            {error && <p className="text-xs font-semibold text-red-600" role="alert">{error}</p>}
+
             <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
               <div className="text-[11px] text-stone-500 space-y-1">
                 <div className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-[#C5A059]" /> Paris, France • Freetown, Sierra Leone</div>
@@ -128,9 +150,10 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
 
                 <button
                   type="submit"
-                  className="bg-stone-900 hover:bg-black text-white font-bold uppercase px-6 py-3 rounded shadow cursor-pointer flex items-center gap-2"
+                  disabled={sending}
+                  className="bg-stone-900 hover:bg-black disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold uppercase px-6 py-3 rounded shadow cursor-pointer flex items-center gap-2"
                 >
-                  <Send className="w-4 h-4" /> Send Message
+                  <Send className="w-4 h-4" /> {sending ? 'Sending...' : 'Send Message'}
                 </button>
               </div>
             </div>

@@ -1,6 +1,5 @@
 import 'dotenv/config';
 import express from 'express';
-import nodemailer from 'nodemailer';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
@@ -405,23 +404,26 @@ app.get('/api/verify-checkout-session', async (req, res) => {
   }
 });
 
-const getTransporter = () => {
-  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
-  if (!SMTP_HOST || !SMTP_PORT || !SMTP_USER || !SMTP_PASS) return null;
+const sendResendEmail = async (message: { to: string | string[]; subject: string; text: string }) => {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.MAIL_FROM;
+  if (!apiKey || !from) return false;
 
-  return nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: Number(SMTP_PORT),
-    secure: process.env.SMTP_SECURE === 'true',
-    auth: { user: SMTP_USER, pass: SMTP_PASS },
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from, ...message }),
   });
+  if (!response.ok) {
+    const details = await response.text();
+    throw new Error(`Resend rejected email: ${response.status} ${details}`);
+  }
+  return true;
 };
 
 const sendPaidOrderEmail = async (order: ReturnType<typeof getOrderFromSession>) => {
-  const transporter = getTransporter();
-  const mailFrom = process.env.MAIL_FROM || process.env.SMTP_USER;
-  if (!transporter || !mailFrom) {
-    console.warn('Payment email skipped: SMTP environment variables are not configured.');
+  if (!process.env.RESEND_API_KEY || !process.env.MAIL_FROM) {
+    console.warn('Payment email skipped: RESEND_API_KEY or MAIL_FROM is not configured.');
     return;
   }
   if (!order.customer_email) {
@@ -430,7 +432,6 @@ const sendPaidOrderEmail = async (order: ReturnType<typeof getOrderFromSession>)
   }
 
   const message = {
-    from: mailFrom,
     subject: `KOMSE DESIGN payment confirmation: ${order.stripe_session_id}`,
     text: [
       'Thank you for your KOMSE DESIGN order.',
@@ -444,11 +445,11 @@ const sendPaidOrderEmail = async (order: ReturnType<typeof getOrderFromSession>)
       'Your payment was received successfully. We will send further updates as your order progresses.',
     ].join('\n'),
   };
-  await transporter.sendMail({ ...message, to: order.customer_email });
+  await sendResendEmail({ ...message, to: order.customer_email });
 
   const adminEmail = process.env.ADMIN_EMAIL;
   if (adminEmail) {
-    await transporter.sendMail({
+    await sendResendEmail({
       ...message,
       to: adminEmail,
       subject: `New KOMSE DESIGN order: ${order.stripe_session_id}`,
@@ -468,12 +469,9 @@ app.post('/api/product-notification', async (req, res) => {
   const validRecipients = Array.isArray(recipients)
     ? [...new Set(recipients.filter((email) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)))]
     : [];
-  const transporter = getTransporter();
-  const mailFrom = process.env.MAIL_FROM || process.env.SMTP_USER;
-
-  if (!transporter || !mailFrom) {
-    console.warn('Product email skipped: SMTP environment variables are not configured.');
-    return res.status(202).json({ sent: false, reason: 'smtp-not-configured' });
+  if (!process.env.RESEND_API_KEY || !process.env.MAIL_FROM) {
+    console.warn('Product email skipped: RESEND_API_KEY or MAIL_FROM is not configured.');
+    return res.status(202).json({ sent: false, reason: 'resend-not-configured' });
   }
 
   if (!product?.name || !action || validRecipients.length === 0) {
@@ -492,7 +490,7 @@ app.post('/api/product-notification', async (req, res) => {
   ].join('\n');
 
   try {
-    await transporter.sendMail({ from: mailFrom, to: validRecipients, subject, text });
+    await sendResendEmail({ to: validRecipients, subject, text });
     return res.json({ sent: true, recipients: validRecipients.length });
   } catch (error) {
     console.error('Product email failed:', error);
@@ -513,12 +511,10 @@ app.post('/api/order-notification', async (req, res) => {
       itemsSummary?: string;
     };
   };
-  const transporter = getTransporter();
-  const mailFrom = process.env.MAIL_FROM || process.env.SMTP_USER;
   const adminEmail = process.env.ADMIN_EMAIL;
 
-  if (!transporter || !mailFrom || !adminEmail) {
-    console.warn('Order email skipped: SMTP or ADMIN_EMAIL environment variables are not configured.');
+  if (!process.env.RESEND_API_KEY || !process.env.MAIL_FROM || !adminEmail) {
+    console.warn('Order email skipped: Resend or ADMIN_EMAIL environment variables are not configured.');
     return res.status(202).json({ sent: false, reason: 'mail-not-configured' });
   }
 
@@ -528,7 +524,6 @@ app.post('/api/order-notification', async (req, res) => {
 
   try {
     const message = {
-      from: mailFrom,
       subject: `KOMSE DESIGN payment confirmation: ${order.id}`,
       text: [
         'Thank you for your KOMSE DESIGN order.',
@@ -542,13 +537,12 @@ app.post('/api/order-notification', async (req, res) => {
         'Your payment was received successfully. We will send further updates as your order progresses.',
       ].join('\n'),
     };
-    await transporter.sendMail({
+    await sendResendEmail({
       ...message,
       to: order.customerEmail,
     });
-    await transporter.sendMail({
+    await sendResendEmail({
       ...message,
-      from: mailFrom,
       to: adminEmail,
       subject: `New KOMSE DESIGN order: ${order.id}`,
       text: [
