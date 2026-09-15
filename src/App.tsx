@@ -780,12 +780,25 @@ export default function App() {
     showToast(`Order ${orderId} updated to ${status}`);
   };
 
-  const handleDeleteOrder = (orderId: string) => {
+  const handleDeleteOrder = async (orderId: string) => {
+    if (supabase && currentUser?.role !== 'Admin') {
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .eq('order_id', orderId)
+        .eq('user_id', currentUser?.id || '');
+      if (error) {
+        console.error('Customer order delete failed:', error);
+        showToast(`Order could not be removed: ${error.message}`);
+        return;
+      }
+    }
+
     const deletedOrderIds = readDeletedIds('komse_deleted_orders');
     deletedOrderIds.add(orderId);
     writeDeletedIds('komse_deleted_orders', deletedOrderIds);
     setUserOrders((prev) => prev.filter((o) => o.id !== orderId));
-    if (supabase) {
+    if (supabase && currentUser?.role === 'Admin') {
       void adminRequest(`/api/admin/orders/${encodeURIComponent(orderId)}`, { method: 'DELETE' }).catch((error) => {
         console.error('Order delete failed:', error);
         showToast(`Order could not be deleted: ${error.message}`);
