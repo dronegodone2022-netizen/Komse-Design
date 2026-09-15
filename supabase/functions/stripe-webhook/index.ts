@@ -65,18 +65,19 @@ const sendPaidOrderEmail = async (order: ReturnType<typeof getOrderFromSession>)
   const emails = [
     { to: order.customer_email, subject: `KOMSE DESIGN payment confirmation: ${orderReference}`, text: ['Thank you for your KOMSE DESIGN order.', '', orderDetails, '', 'Your payment was received successfully.'].join('\n') },
     Deno.env.get('ADMIN_EMAIL')
-      ? { to: Deno.env.get('ADMIN_EMAIL')!, subject: `New KOMSE DESIGN order: ${orderReference}`, text: ['New customer order received.', '', orderDetails].join('\n') }
+      ? { to: Deno.env.get('ADMIN_EMAIL')!, reply_to: order.customer_email, subject: `New KOMSE DESIGN order: ${orderReference}`, text: ['New customer order received.', '', orderDetails].join('\n') }
       : null,
   ].filter((email): email is { to: string; subject: string; text: string } => Boolean(email));
-  for (const { to, subject, text } of emails) {
+  for (const email of emails) {
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${hook}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         from,
-        to,
-        subject,
-        text,
+        to: email.to,
+        reply_to: 'reply_to' in email ? email.reply_to : undefined,
+        subject: email.subject,
+        text: email.text,
       }),
     });
     if (!response.ok) {
