@@ -404,7 +404,7 @@ app.get('/api/verify-checkout-session', async (req, res) => {
   }
 });
 
-const sendResendEmail = async (message: { to: string | string[]; subject: string; text: string; reply_to?: string }) => {
+const sendResendEmail = async (message: { to: string | string[]; subject: string; text: string; from?: string; reply_to?: string }) => {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.MAIL_FROM;
   if (!apiKey || !from) return false;
@@ -420,6 +420,8 @@ const sendResendEmail = async (message: { to: string | string[]; subject: string
   }
   return true;
 };
+
+const senderAddress = (from: string) => from.match(/<([^>]+)>/)?.[1] || from;
 
 const sendPaidOrderEmail = async (order: ReturnType<typeof getOrderFromSession>) => {
   if (!process.env.RESEND_API_KEY || !process.env.MAIL_FROM) {
@@ -452,6 +454,7 @@ const sendPaidOrderEmail = async (order: ReturnType<typeof getOrderFromSession>)
     await sendResendEmail({
       ...message,
       to: adminEmail,
+      from: `${order.customer_name} <${senderAddress(process.env.MAIL_FROM || '')}>`,
       reply_to: order.customer_email,
       subject: `New KOMSE DESIGN order: ${order.stripe_session_id}`,
     });
@@ -545,6 +548,7 @@ app.post('/api/order-notification', async (req, res) => {
     await sendResendEmail({
       ...message,
       to: adminEmail,
+      from: `${order.customerName || 'Customer'} <${senderAddress(process.env.MAIL_FROM || '')}>`,
       reply_to: order.customerEmail,
       subject: `New KOMSE DESIGN order: ${order.id}`,
       text: [

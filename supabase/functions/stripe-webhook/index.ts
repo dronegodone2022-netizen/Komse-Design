@@ -18,6 +18,8 @@ const publicAppUrl = () => {
   return 'https://komsedesign.com';
 };
 
+const senderAddress = (from: string) => from.match(/<([^>]+)>/)?.[1] || from;
+
 const formatAddress = (address?: Stripe.Address | null, name?: string | null) => {
   if (!address) return 'Shipping address was not provided.';
   return [name, address.line1, address.line2, [address.postal_code, address.city].filter(Boolean).join(' '), address.state, address.country]
@@ -65,15 +67,15 @@ const sendPaidOrderEmail = async (order: ReturnType<typeof getOrderFromSession>)
   const emails = [
     { to: order.customer_email, subject: `KOMSE DESIGN payment confirmation: ${orderReference}`, text: ['Thank you for your KOMSE DESIGN order.', '', orderDetails, '', 'Your payment was received successfully.'].join('\n') },
     Deno.env.get('ADMIN_EMAIL')
-      ? { to: Deno.env.get('ADMIN_EMAIL')!, reply_to: order.customer_email, subject: `New KOMSE DESIGN order: ${orderReference}`, text: ['New customer order received.', '', orderDetails].join('\n') }
+      ? { to: Deno.env.get('ADMIN_EMAIL')!, from: `${order.customer_name} <${senderAddress(from)}>`, reply_to: order.customer_email, subject: `New KOMSE DESIGN order: ${orderReference}`, text: ['New customer order received.', '', orderDetails].join('\n') }
       : null,
-  ].filter((email): email is { to: string; subject: string; text: string } => Boolean(email));
+  ].filter((email): email is { to: string; from?: string; subject: string; text: string; reply_to?: string } => Boolean(email));
   for (const email of emails) {
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${hook}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from,
+        from: 'from' in email ? email.from : from,
         to: email.to,
         reply_to: 'reply_to' in email ? email.reply_to : undefined,
         subject: email.subject,
