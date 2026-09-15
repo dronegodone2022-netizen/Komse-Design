@@ -48,7 +48,7 @@ const sendPaidOrderEmail = async (order: ReturnType<typeof getOrderFromSession>)
   const productLines = items.length
     ? items.map((item) => `${item.quantity || 1}x ${item.name || 'Product'}${item.productId ? `\n  ${publicAppUrl()}/?product=${encodeURIComponent(item.productId)}` : ''}${item.selectedSize ? `\n  Size: ${item.selectedSize}${item.selectedColor ? `, Color: ${item.selectedColor}` : ''}` : ''}`).join('\n')
     : order.items_summary;
-  const text = ['Thank you for your KOMSE DESIGN order.', '', `Order: ${orderReference}`, `Customer: ${order.customer_name}`, `Items: ${order.items_count}`, '', 'Products:', productLines, '', `Shipping address: ${order.shipping_address}`, `Total paid: EUR ${order.total_amount_eur}`, '', 'Your payment was received successfully.'].join('\n');
+  const text = ['Thank you for your KOMSE DESIGN order.', '', `Order: ${orderReference}`, `Customer name: ${order.customer_name}`, `Customer email: ${order.customer_email}`, `Items: ${order.items_count}`, '', 'Products:', productLines, '', `Shipping address: ${order.shipping_address}`, `Total paid: EUR ${order.total_amount_eur}`, '', 'Your payment was received successfully.'].join('\n');
   const recipients = [order.customer_email, Deno.env.get('ADMIN_EMAIL')].filter(Boolean);
   for (const to of recipients) {
     const response = await fetch('https://api.resend.com/emails', {
