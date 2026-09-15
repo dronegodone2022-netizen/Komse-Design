@@ -227,6 +227,7 @@ app.delete('/api/admin/products/:id', async (req, res) => {
 app.patch('/api/admin/orders/:id', async (req, res) => {
   const client = await requireAdmin(req, res);
   if (!client) return;
+  const orderReference = req.params.id;
   const updates = {
     status: req.body?.status,
     tracking_number: req.body?.trackingNumber,
@@ -234,9 +235,39 @@ app.patch('/api/admin/orders/:id', async (req, res) => {
   if (!['Processing', 'Shipped', 'Delivered', 'Cancelled'].includes(updates.status)) {
     return res.status(400).json({ error: 'A valid order status is required.' });
   }
-  const { error } = await client.from('orders').update(updates).eq('stripe_session_id', req.params.id);
+  const { data: order, error: lookupError } = await client
+    .from('orders')
+    .select('stripe_session_id, order_id, customer_name, customer_email, items_summary, total_amount_eur')
+    .or(`order_id.eq.${orderReference},stripe_session_id.eq.${orderReference}`)
+    .maybeSingle();
+  if (lookupError) return res.status(502).json({ error: lookupError.message });
+  if (!order) return res.status(404).json({ error: 'Order was not found.' });
+
+  const { error } = await client.from('orders').update(updates).eq('stripe_session_id', order.stripe_session_id);
   if (error) return res.status(502).json({ error: error.message });
-  return res.json({ updated: true });
+
+  let emailSent = false;
+  if (order.customer_email && process.env.RESEND_API_KEY && process.env.MAIL_FROM) {
+    try {
+      emailSent = await sendResendEmail({
+        to: order.customer_email,
+        subject: `KOMSE DESIGN order ${order.order_id || orderReference} update`,
+        text: [
+          `Hello ${order.customer_name || 'Customer'},`,
+          '',
+          `Your KOMSE DESIGN order ${order.order_id || orderReference} is now ${updates.status}.`,
+          `Tracking number: ${updates.tracking_number || 'Pending assignment'}`,
+          `Products: ${order.items_summary || 'KOMSE DESIGN order'}`,
+          `Total paid: EUR ${order.total_amount_eur ?? 'N/A'}`,
+          '',
+          'Thank you for shopping with KOMSE DESIGN.',
+        ].join('\n'),
+      });
+    } catch (emailError) {
+      console.error('Order status email failed:', emailError);
+    }
+  }
+  return res.json({ updated: true, emailSent });
 });
 
 app.delete('/api/admin/orders/:id', async (req, res) => {
