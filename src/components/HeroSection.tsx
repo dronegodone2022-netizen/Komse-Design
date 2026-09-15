@@ -14,37 +14,37 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   return (
     <section className="relative bg-[#F7F6F4] text-stone-900 overflow-hidden">
       {/* Main Hero Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 md:py-20 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 md:px-4 py-12 md:py-20 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
         {/* Left Copy & Actions */}
-        <div className="lg:col-span-6 space-y-6 z-10">
-            <div className="inline-flex items-center gap-2 bg-[#C5A059]/10 border border-[#C5A059]/30 text-[#9A7B3E] text-xs font-bold px-3.5 py-1.5 rounded-full uppercase tracking-wider">
+        <div className="w-full lg:col-span-6 space-y-6 z-10 md:text-center lg:text-left">
+            <div className="inline-flex items-center gap-2 bg-[#C5A059]/10 border border-[#C5A059]/30 text-[#9A7B3E] text-[10px] sm:text-xs font-bold px-3.5 py-1.5 rounded-full uppercase tracking-wider">
               <span>EST. 2012</span>
               <span>•</span>
               <span>FROM SIERRA LEONE TO THE WORLD</span>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-stone-900 leading-[1.08] uppercase">
-              WHERE <br />
-              SIERRA LEONEAN <br />
-              <span className="text-[#C5A059]">HERITAGE</span> MEETS <br />
-              CONTEMPORARY <br />
+            <h1 className="w-full text-4xl sm:text-5xl lg:text-5xl xl:text-6xl font-black tracking-tight text-stone-900 leading-[1.08] uppercase">
+              WHERE <br className="md:hidden lg:block" />
+              SIERRA LEONEAN <br className="md:hidden lg:block" />
+              <span className="text-[#C5A059]">HERITAGE</span> MEETS <br className="md:hidden lg:block" />
+              CONTEMPORARY <br className="md:hidden lg:block" />
               DESIGN.
             </h1>
 
-            <p className="text-stone-700 text-base sm:text-lg max-w-md leading-relaxed font-normal">
+            <p className="w-full text-stone-700 text-base sm:text-lg md:mx-auto lg:mx-0 leading-relaxed font-normal">
               An international clothing and lifestyle brand created to bring Sierra Leonean culture to the world through authentic, comfortable streetwear.
             </p>
 
-          <div className="flex flex-wrap items-center gap-4 pt-2">
+          <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
             <button
               onClick={onGetInTouch}
-              className="bg-stone-950 hover:bg-black text-white text-xs sm:text-sm font-bold tracking-widest uppercase px-8 py-4 rounded-xs shadow-md hover:shadow-xl transition-all cursor-pointer transform active:scale-98"
+              className="w-full sm:w-auto bg-stone-950 hover:bg-black text-white text-xs sm:text-sm font-bold tracking-widest uppercase px-8 py-4 rounded-xs shadow-md hover:shadow-xl transition-all cursor-pointer transform active:scale-98"
             >
               GET IN TOUCH
             </button>
             <button
               onClick={onBrowseShop}
-              className="bg-stone-200/80 hover:bg-stone-300/80 text-stone-900 text-xs sm:text-sm font-bold tracking-widest uppercase px-8 py-4 rounded-xs border border-stone-300 transition-all cursor-pointer"
+              className="w-full sm:w-auto bg-stone-200/80 hover:bg-stone-300/80 text-stone-900 text-xs sm:text-sm font-bold tracking-widest uppercase px-8 py-4 rounded-xs border border-stone-300 transition-all cursor-pointer"
             >
               BROWSE SHOP
             </button>
@@ -53,7 +53,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
         {/* Right Editorial Model Photo */}
         <div className="lg:col-span-6 relative flex justify-center lg:justify-end">
-          <div className="relative w-full max-w-lg lg:max-w-none rounded-xl overflow-hidden shadow-2xl border border-stone-300/50 bg-stone-200">
+          <div className="relative w-full max-w-lg md:max-w-none rounded-xl overflow-hidden shadow-2xl border border-stone-300/50 bg-stone-200">
             <img
               src={HERO_IMAGE}
               alt="KOMSE DESIGN Sierra Leonean Heritage Contemporary Fashion"

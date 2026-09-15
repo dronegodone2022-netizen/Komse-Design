@@ -83,9 +83,9 @@ export const Footer: React.FC<FooterProps> = ({
       </div>
 
       {/* Main Footer Links */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 grid grid-cols-1 md:grid-cols-12 gap-8 text-xs text-stone-600">
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 grid grid-cols-2 sm:grid-cols-1 md:grid-cols-12 gap-8 text-xs text-stone-600">
         {/* Brand Column */}
-        <div className="md:col-span-4 space-y-4">
+        <div className="col-span-2 sm:col-span-1 md:col-span-4 space-y-4">
           <div className="flex items-center gap-3">
             <img
               src={komseLogoImg}
@@ -184,7 +184,7 @@ export const Footer: React.FC<FooterProps> = ({
         </div>
 
         {/* Company & Payment Methods Column */}
-        <div className="md:col-span-3 space-y-4">
+        <div className="col-span-2 grid grid-cols-2 gap-4 sm:col-span-1 sm:block sm:space-y-4 md:col-span-3">
           <div className="space-y-2">
             <h4 className="font-bold text-stone-900 uppercase tracking-wider text-xs">COMPANY</h4>
             <ul className="space-y-2">
@@ -214,7 +214,7 @@ export const Footer: React.FC<FooterProps> = ({
             <span className="font-bold text-stone-900 uppercase tracking-wider block mb-2 text-[11px]">
               PAYMENT METHODS
             </span>
-            <div className="flex flex-wrap gap-1.5 items-center">
+            <div className="flex flex-wrap items-center justify-center gap-1.5">
               <div title="VISA" className="bg-white px-2 py-1.5 rounded border border-stone-200/90 shadow-2xs flex items-center justify-center h-7 hover:border-stone-400 transition-colors">
                 <VisaLogo className="h-3 w-auto" />
               </div>
