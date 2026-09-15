@@ -3,9 +3,20 @@ import { createClient } from 'npm:@supabase/supabase-js@2.115.0';
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
+const publicAppUrl = () => (Deno.env.get('APP_URL') || 'https://dronegodone2022-netizen.github.io/Komse-Design').replace(/\/$/, '');
+
+const formatAddress = (address?: Stripe.Address | null, name?: string | null) => {
+  if (!address) return 'Shipping address was not provided.';
+  return [name, address.line1, address.line2, [address.postal_code, address.city].filter(Boolean).join(' '), address.state, address.country]
+    .filter(Boolean)
+    .join(', ');
+};
+
 const getOrderFromSession = (session: Stripe.Checkout.Session) => {
   const totalAmountEur = (session.amount_total || 0) / 100;
   const subtotalEur = Number(session.metadata?.subtotalEur || totalAmountEur);
+  const shippingAddress = session.shipping_details?.address || session.customer_details?.address;
+  const itemsData = session.metadata?.itemsData || '[]';
   return {
     user_id: session.metadata?.userId || null,
     order_id: session.metadata?.orderId || `KOMSE-${session.id.slice(-8).toUpperCase()}`,
@@ -17,6 +28,8 @@ const getOrderFromSession = (session: Stripe.Checkout.Session) => {
     total_amount_eur: totalAmountEur,
     items_count: Number(session.metadata?.itemsCount || 0),
     items_summary: session.metadata?.itemsSummary || 'KOMSE DESIGN order',
+    items_data: itemsData,
+    shipping_address: formatAddress(shippingAddress, session.shipping_details?.name || session.customer_details?.name),
     status: 'Processing',
     tracking_number: 'Pending assignment',
   };
@@ -29,7 +42,13 @@ const sendPaidOrderEmail = async (order: ReturnType<typeof getOrderFromSession>)
     console.warn('Payment email skipped: RESEND_API_KEY, MAIL_FROM, or customer email is missing.');
     return;
   }
-  const text = ['Thank you for your KOMSE DESIGN order.', '', `Order: ${order.stripe_session_id}`, `Customer: ${order.customer_name}`, `Items: ${order.items_count}`, `Products: ${order.items_summary}`, `Total paid: EUR ${order.total_amount_eur}`, '', 'Your payment was received successfully.'].join('\n');
+  const orderReference = order.order_id;
+  let items: Array<{ productId?: string; name?: string; quantity?: number; selectedSize?: string; selectedColor?: string }> = [];
+  try { items = JSON.parse(order.items_data); } catch { /* Keep the legacy summary below. */ }
+  const productLines = items.length
+    ? items.map((item) => `${item.quantity || 1}x ${item.name || 'Product'}${item.productId ? `\n  ${publicAppUrl()}/?product=${encodeURIComponent(item.productId)}` : ''}${item.selectedSize ? `\n  Size: ${item.selectedSize}${item.selectedColor ? `, Color: ${item.selectedColor}` : ''}` : ''}`).join('\n')
+    : order.items_summary;
+  const text = ['Thank you for your KOMSE DESIGN order.', '', `Order: ${orderReference}`, `Customer: ${order.customer_name}`, `Items: ${order.items_count}`, '', 'Products:', productLines, '', `Shipping address: ${order.shipping_address}`, `Total paid: EUR ${order.total_amount_eur}`, '', 'Your payment was received successfully.'].join('\n');
   const recipients = [order.customer_email, Deno.env.get('ADMIN_EMAIL')].filter(Boolean);
   for (const to of recipients) {
     const response = await fetch('https://api.resend.com/emails', {
@@ -38,7 +57,7 @@ const sendPaidOrderEmail = async (order: ReturnType<typeof getOrderFromSession>)
       body: JSON.stringify({
         from,
         to,
-        subject: `KOMSE DESIGN payment confirmation: ${order.stripe_session_id}`,
+        subject: `KOMSE DESIGN payment confirmation: ${orderReference}`,
         text,
       }),
     });
@@ -68,7 +87,8 @@ Deno.serve(async (request) => {
   const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
   const order = getOrderFromSession(session);
   if (!order.user_id) return json({ error: 'Checkout session is missing its user ID.' }, 500);
-  const { error } = await admin.from('orders').upsert(order, { onConflict: 'stripe_session_id' });
+  const { items_data: _itemsData, shipping_address: _shippingAddress, ...orderForDatabase } = order;
+  const { error } = await admin.from('orders').upsert(orderForDatabase, { onConflict: 'stripe_session_id' });
   if (error) return json({ error: 'Unable to persist paid checkout.' }, 500);
   try {
     await sendPaidOrderEmail(order);

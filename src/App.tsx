@@ -238,6 +238,16 @@ export default function App() {
       return productsList.find((product) => product.id === currentProduct.id) || null;
     });
   }, [productsList]);
+
+  useEffect(() => {
+    const productId = new URLSearchParams(window.location.search).get('product');
+    if (!productId) return;
+    const product = productsList.find((item) => item.id === productId);
+    if (product) {
+      setSelectedProduct(product);
+      setProductModalOpen(true);
+    }
+  }, [productsList]);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(() => {
     const params = new URLSearchParams(window.location.search);
