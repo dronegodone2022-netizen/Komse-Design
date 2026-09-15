@@ -404,7 +404,7 @@ app.get('/api/verify-checkout-session', async (req, res) => {
   }
 });
 
-const sendResendEmail = async (message: { to: string | string[]; subject: string; text: string }) => {
+const sendResendEmail = async (message: { to: string | string[]; subject: string; text: string; reply_to?: string }) => {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.MAIL_FROM;
   if (!apiKey || !from) return false;
@@ -452,6 +452,7 @@ const sendPaidOrderEmail = async (order: ReturnType<typeof getOrderFromSession>)
     await sendResendEmail({
       ...message,
       to: adminEmail,
+      reply_to: order.customer_email,
       subject: `New KOMSE DESIGN order: ${order.stripe_session_id}`,
     });
   }
@@ -544,6 +545,7 @@ app.post('/api/order-notification', async (req, res) => {
     await sendResendEmail({
       ...message,
       to: adminEmail,
+      reply_to: order.customerEmail,
       subject: `New KOMSE DESIGN order: ${order.id}`,
       text: [
         'A new customer order has been completed.',
