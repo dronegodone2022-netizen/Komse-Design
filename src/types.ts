@@ -89,6 +89,7 @@ export interface UserProfile {
 
 export interface UserOrder {
   id: string;
+  userId?: string;
   customerName?: string;
   customerEmail?: string;
   date: string;
