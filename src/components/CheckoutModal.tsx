@@ -400,6 +400,11 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       <span>Total Due</span>
                       <span className="text-[#C5A059]">{formatPrice(totalEur)}</span>
                     </div>
+                    {currency.code !== 'EUR' && (
+                      <p className="text-[10px] text-stone-500 text-right">
+                        Charged in euros: €{totalEur.toFixed(2)}. Converted prices are estimates.
+                      </p>
+                    )}
                   </div>
                 </div>
 
