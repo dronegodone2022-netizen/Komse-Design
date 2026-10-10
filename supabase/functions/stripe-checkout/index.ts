@@ -63,6 +63,26 @@ const appUrl = () => {
   return 'https://komsedesign.com';
 };
 
+// Each site address keeps its own sign-in, so send customers back to the one they started on.
+const allowedReturnOrigins = [
+  'https://komsedesign.com',
+  'https://www.komsedesign.com',
+  'https://dronegodone2022-netizen.github.io',
+  'http://localhost:3000',
+];
+
+const returnUrl = (requested: unknown) => {
+  if (typeof requested === 'string') {
+    try {
+      const parsed = new URL(requested);
+      if (allowedReturnOrigins.includes(parsed.origin)) return `${parsed.origin}${parsed.pathname}`.replace(/\/$/, '');
+    } catch {
+      // Fall back to APP_URL below.
+    }
+  }
+  return appUrl();
+};
+
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (request.method !== 'POST') return json({ error: 'POST is required.' }, 405);
@@ -109,7 +129,7 @@ Deno.serve(async (request) => {
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = normalizedItems.map((item) => ({ quantity: item.quantity, price_data: { currency: 'eur', unit_amount: Math.round(item.priceEur * 100), product_data: { name: `${item.name}${item.selectedSize ? ` (${item.selectedSize}, ${item.selectedColor})` : ''}` } } }));
     if (shippingEur) lineItems.push({ quantity: 1, price_data: { currency: 'eur', unit_amount: 750, product_data: { name: 'Shipping' } } });
     const stripeCustomer = await stripe.customers.create({ name: customer.name || 'Customer', email: customer.email, phone: customer.phone || undefined });
-    const session = await stripe.checkout.sessions.create({ mode: 'payment', line_items: lineItems, customer: stripeCustomer.id, billing_address_collection: 'required', phone_number_collection: { enabled: true }, shipping_address_collection: { allowed_countries: ['FR', 'GB', 'US', 'SL', 'SN', 'CI', 'GH', 'NG'] }, success_url: `${appUrl()}/?payment=success&session_id={CHECKOUT_SESSION_ID}`, cancel_url: `${appUrl()}/?payment=cancelled`, metadata: { orderId: body.orderId, userId: user.id, customerName: customer.name || 'Customer', subtotalEur: subtotalEur.toFixed(2), shippingEur: shippingEur.toFixed(2), itemsCount: String(normalizedItems.reduce((count, item) => count + item.quantity, 0)), itemsSummary: normalizedItems.map((item) => `${item.quantity}x ${item.name}`).join(', '), itemsData: JSON.stringify(normalizedItems.map(({ productId, name, quantity, selectedSize, selectedColor }) => ({ productId, name, quantity, selectedSize, selectedColor }))) } });
+    const session = await stripe.checkout.sessions.create({ mode: 'payment', line_items: lineItems, customer: stripeCustomer.id, billing_address_collection: 'required', phone_number_collection: { enabled: true }, shipping_address_collection: { allowed_countries: ['FR', 'GB', 'US', 'SL', 'SN', 'CI', 'GH', 'NG'] }, success_url: `${returnUrl(body.returnUrl)}/?payment=success&session_id={CHECKOUT_SESSION_ID}`, cancel_url: `${returnUrl(body.returnUrl)}/?payment=cancelled`, metadata: { orderId: body.orderId, userId: user.id, customerName: customer.name || 'Customer', subtotalEur: subtotalEur.toFixed(2), shippingEur: shippingEur.toFixed(2), itemsCount: String(normalizedItems.reduce((count, item) => count + item.quantity, 0)), itemsSummary: normalizedItems.map((item) => `${item.quantity}x ${item.name}`).join(', '), itemsData: JSON.stringify(normalizedItems.map(({ productId, name, quantity, selectedSize, selectedColor }) => ({ productId, name, quantity, selectedSize, selectedColor }))) } });
     return json({ url: session.url });
   } catch (error) {
     console.error('Stripe checkout function failed:', error);

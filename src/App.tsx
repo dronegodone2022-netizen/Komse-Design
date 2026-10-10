@@ -284,6 +284,16 @@ export default function App() {
   const [completeProfileForCheckout, setCompleteProfileForCheckout] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
 
+  // A customer who returns from Stripe signed out sees the confirmation once they sign in.
+  useEffect(() => {
+    if (!currentUser) return;
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get('session_id');
+    if (params.get('payment') === 'success' && sessionId && !sessionStorage.getItem(`komse_paid_${sessionId}`)) {
+      setCheckoutModalOpen(true);
+    }
+  }, [currentUser?.id]);
+
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [cartLoadedForUserId, setCartLoadedForUserId] = useState<string | null>(null);
 

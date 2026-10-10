@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { CartItem, CurrencyCode, UserOrder, UserProfile } from '../types';
 import { CURRENCIES } from '../data/products';
 import { formatPrice as formatPriceIn } from '../lib/price';
@@ -46,6 +46,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [paidTotalEur, setPaidTotalEur] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState('');
+  const [paymentNotice, setPaymentNotice] = useState('');
+  const verifyingSessionRef = useRef<string | null>(null);
 
   const subtotalEur = cartItems.reduce(
     (acc, item) => acc + item.product.price * item.quantity,
@@ -91,11 +93,23 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     const sessionId = params.get('session_id');
     if (params.get('payment') !== 'success' || !sessionId || sessionStorage.getItem(`komse_paid_${sessionId}`)) return;
 
+    // The signed-in session is restored asynchronously after Stripe redirects back; wait for it.
+    if (!currentUser) {
+      const timeout = window.setTimeout(() => {
+        setPaymentNotice('Your payment was received. Sign in with the account you used at checkout to see your order confirmation.');
+      }, 4000);
+      return () => window.clearTimeout(timeout);
+    }
+
+    if (verifyingSessionRef.current === sessionId) return;
+    verifyingSessionRef.current = sessionId;
+    setPaymentNotice('');
+    setPaymentError('');
     setIsProcessing(true);
     const verifyCheckout = async () => {
       const session = await supabase?.auth.getSession();
       const accessToken = session?.data.session?.access_token;
-      if (!accessToken) throw new Error('Please sign in again to verify your payment.');
+      if (!accessToken) throw new Error('Your payment was received. Sign in again to see your order confirmation.');
       const functionUrl = supabaseFunctionUrl('stripe-checkout');
       return fetch(functionUrl || apiUrl(`/api/verify-checkout-session?session_id=${encodeURIComponent(sessionId)}`), {
         ...(functionUrl ? { method: 'POST', body: JSON.stringify({ action: 'verify', sessionId }) } : {}),
@@ -117,9 +131,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         onClearCart();
         window.history.replaceState({}, '', window.location.pathname);
       })
-      .catch((error) => setPaymentError(error instanceof Error ? error.message : 'Unable to verify payment.'))
+      .catch((error) => {
+        verifyingSessionRef.current = null;
+        setPaymentError(error instanceof Error ? error.message : 'Unable to verify payment.');
+      })
       .finally(() => setIsProcessing(false));
-  }, [onClearCart, onOrderCompleted]);
+  }, [currentUser?.id, onClearCart, onOrderCompleted]);
 
   const handlePayOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,6 +152,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({
           orderId: `KOMSE-${Math.floor(100000 + Math.random() * 900000)}`,
+          returnUrl: `${window.location.origin}${import.meta.env.BASE_URL}`,
           customer: {
             name: `${formData.firstName} ${formData.lastName}`.trim(),
             email: formData.email,
@@ -409,6 +427,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </div>
 
                 <div className="space-y-3 pt-3">
+                  {paymentNotice && <p className="text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 rounded p-3">{paymentNotice}</p>}
                   {paymentError && <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded p-3">{paymentError}</p>}
                   <button
                     type="submit"
