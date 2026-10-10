@@ -3,7 +3,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.115.0';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'PATCH, OPTIONS',
+  'Access-Control-Allow-Methods': 'POST, PATCH, OPTIONS',
 };
 
 const json = (body: unknown, status = 200) =>
@@ -11,7 +11,7 @@ const json = (body: unknown, status = 200) =>
 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
-  if (request.method !== 'PATCH') return json({ error: 'PATCH is required.' }, 405);
+  if (request.method !== 'POST' && request.method !== 'PATCH') return json({ error: 'POST or PATCH is required.' }, 405);
 
   const token = request.headers.get('Authorization')?.replace(/^Bearer\s+/i, '');
   if (!token) return json({ error: 'Administrator authentication is required.' }, 401);

@@ -148,7 +148,7 @@ export default function App() {
   const [productsList, setProductsList] = useState<Product[]>(() => mergeProductsFromStorage());
 
   const notifyUsers = (action: 'added' | 'updated', product: Product) => {
-    if (!supabase) return;
+    if (!supabase || !import.meta.env.VITE_API_URL) return;
     const recipients = usersList
       .map((user) => user.email)
       .filter((email): email is string => Boolean(email));
@@ -163,24 +163,6 @@ export default function App() {
         recipients,
       }),
     })).catch((error) => console.error('Product notification failed:', error));
-  };
-
-  const adminRequest = async (path: string, options: RequestInit = {}) => {
-    if (!supabase) throw new Error('Supabase is not configured.');
-    const { data } = await supabase.auth.getSession();
-    const accessToken = data.session?.access_token;
-    if (!accessToken) throw new Error('Administrator session expired. Please sign in again.');
-    const response = await fetch(apiUrl(path), {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-        ...(options.headers || {}),
-      },
-    });
-    const result = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(result.error || 'Admin request failed.');
-    return result;
   };
 
   useEffect(() => {
@@ -744,10 +726,8 @@ export default function App() {
       id: `p-${Date.now()}`,
     };
     if (supabase) {
-      void adminRequest('/api/admin/products', {
-        method: 'POST',
-        body: JSON.stringify({ product: created }),
-      }).catch((error) => {
+      void supabase.from('products').upsert({ id: created.id, product_data: created }).then(({ error }) => {
+        if (!error) return;
         console.error('Product create failed:', error);
         showToast(`Product could not be saved: ${error.message}`);
       });
@@ -765,10 +745,8 @@ export default function App() {
 
   const handleUpdateProduct = (updatedProd: Product) => {
     if (supabase) {
-      void adminRequest('/api/admin/products', {
-        method: 'POST',
-        body: JSON.stringify({ product: updatedProd }),
-      }).catch((error) => {
+      void supabase.from('products').upsert({ id: updatedProd.id, product_data: updatedProd }).then(({ error }) => {
+        if (!error) return;
         console.error('Product update failed:', error);
         showToast(`Product could not be updated: ${error.message}`);
       });
@@ -792,7 +770,8 @@ export default function App() {
 
   const handleDeleteProduct = (productId: string) => {
     if (supabase) {
-      void adminRequest(`/api/admin/products/${encodeURIComponent(productId)}`, { method: 'DELETE' }).catch((error) => {
+      void supabase.from('products').delete().eq('id', productId).then(({ error }) => {
+        if (!error) return;
         console.error('Product delete failed:', error);
         showToast(`Product could not be deleted: ${error.message}`);
       });
@@ -812,6 +791,7 @@ export default function App() {
 
   // Order CRUD Handlers for Admin Panel
   const handleUpdateOrderStatus = (orderId: string, status: UserOrder['status'], trackingNumber?: string) => {
+    const previousOrder = userOrders.find((o) => o.id === orderId);
     setUserOrders((prev) =>
       prev.map((o) => (o.id === orderId ? { ...o, status, trackingNumber: trackingNumber ?? o.trackingNumber } : o))
     );
@@ -819,23 +799,21 @@ export default function App() {
     if (supabase) {
       void (async () => {
         try {
-          let result: { emailSent?: boolean } | null = null;
-          const functionResponse = await supabase.functions.invoke('admin-order-update', {
+          const { data, error } = await supabase.functions.invoke('admin-order-update', {
+            method: 'PATCH',
             body: { orderId, status, trackingNumber },
           });
-          if (functionResponse.error) {
-            result = await adminRequest(`/api/admin/orders/${encodeURIComponent(orderId)}`, {
-              method: 'PATCH',
-              body: JSON.stringify({ status, trackingNumber }),
-            });
-          } else {
-            result = functionResponse.data;
+          if (error) {
+            // Surface the function's own message (e.g. "Order was not found.") when it sent one.
+            const details = await (error as { context?: Response }).context?.json?.().catch(() => null);
+            throw new Error(details?.error || error.message);
           }
-          showToast(result?.emailSent === false
+          showToast((data as { emailSent?: boolean } | null)?.emailSent === false
             ? `Order ${orderId} updated, but the status email was not sent. Check RESEND_API_KEY and MAIL_FROM.`
-            : `Order ${orderId} updated to ${status}`);
+            : `Order ${orderId} updated to ${status}. The customer can see it now.`);
         } catch (error) {
           console.error('Order update failed:', error);
+          if (previousOrder) setUserOrders((prev) => prev.map((o) => (o.id === orderId ? previousOrder : o)));
           showToast(`Order could not be updated: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
       })();
@@ -863,10 +841,18 @@ export default function App() {
     writeDeletedIds('komse_deleted_orders', deletedOrderIds);
     setUserOrders((prev) => prev.filter((o) => o.id !== orderId));
     if (supabase && currentUser?.role === 'Admin') {
-      void adminRequest(`/api/admin/orders/${encodeURIComponent(orderId)}`, { method: 'DELETE' }).catch((error) => {
-        console.error('Order delete failed:', error);
-        showToast(`Order could not be deleted: ${error.message}`);
-      });
+      // The reference is interpolated into a PostgREST filter, so only allow ID-safe characters.
+      if (/^[A-Za-z0-9_-]{1,255}$/.test(orderId)) {
+        void supabase
+          .from('orders')
+          .delete()
+          .or(`order_id.eq.${orderId},stripe_session_id.eq.${orderId}`)
+          .then(({ error }) => {
+            if (!error) return;
+            console.error('Order delete failed:', error);
+            showToast(`Order could not be deleted: ${error.message}`);
+          });
+      }
     }
     showToast(`Order ${orderId} removed`);
   };
