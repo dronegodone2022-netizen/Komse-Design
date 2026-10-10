@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Product, UserOrder, UserProfile, ProductCategory, CurrencyCode, ReproductionRequest } from '../types';
 import { CURRENCIES } from '../data/products';
+import { formatPrice as formatPriceIn } from '../lib/price';
 import { supabase } from '../lib/supabase';
 import komseLogoImg from '../assets/images/komse_official_logo.png';
 import {
@@ -339,10 +340,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   if (!isOpen) return null;
 
   // Currency converter
-  const formatPrice = (amountEur: number) => {
-    const curr = CURRENCIES[currentCurrency] || CURRENCIES.EUR;
-    return `${curr.symbol}${(amountEur * curr.rate).toFixed(2)}`;
-  };
+  // Admin figures stay in EUR, the currency Stripe charges, regardless of the storefront currency.
+  const formatPrice = (amountEur: number) => formatPriceIn(amountEur, CURRENCIES.EUR);
 
   // KPI Calculations
   const totalRevenueEur = orders.reduce((acc, order) => acc + (order.status !== 'Cancelled' ? order.totalAmountEur : 0), 0);
@@ -788,6 +787,22 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     return matchesStatus && matchesRole && matchesQuery;
   });
 
+  const adminTabs: { id: AdminTab; label: string; shortLabel: string; icon: typeof LayoutDashboard; count?: number; title: string; description: string }[] = [
+    { id: 'overview', label: 'Overview', shortLabel: 'Home', icon: LayoutDashboard, title: 'Dashboard', description: 'Revenue, orders and store activity at a glance.' },
+    { id: 'products', label: 'Products', shortLabel: 'Products', icon: Package, count: products.length, title: 'Products', description: 'Add, edit and manage catalog inventory.' },
+    { id: 'orders', label: 'Orders', shortLabel: 'Orders', icon: ShoppingBag, count: orders.length, title: 'Orders', description: 'Update order status and tracking. Customers are notified by email.' },
+    { id: 'reproductions', label: 'Reproductions', shortLabel: 'Requests', icon: RefreshCcw, count: reproductionRequests.length, title: 'Reproduction Requests', description: 'On-demand requests for out-of-stock pieces.' },
+    { id: 'users', label: 'Users & Policies', shortLabel: 'Users', icon: Users, count: users.length, title: 'Users & Policies', description: 'Customer accounts, roles and policy enforcement.' },
+    { id: 'activity', label: 'Activity Log', shortLabel: 'Activity', icon: Activity, count: activityLogs.length, title: 'Activity Log', description: 'Every administrative change, newest first.' },
+  ];
+  const activeTabMeta = adminTabs.find((tab) => tab.id === activeTab) || adminTabs[0];
+  const selectAdminTab = (tab: AdminTab) => {
+    setActiveTab(tab);
+    setIsAddingProduct(false);
+    setIsAddingOrder(false);
+    setIsAddingUser(false);
+  };
+
   const filteredActivityLogs = activityLogs.filter((log) => {
     const matchesCategory = activityCategoryFilter === 'All' || log.category === activityCategoryFilter;
     const q = activitySearch.toLowerCase().trim();
@@ -803,72 +818,71 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
   return (
     <div className={isPage
-      ? 'h-screen overflow-hidden bg-[#FAF9F6]'
+      ? 'h-dvh overflow-hidden bg-[#FAF9F6]'
       : 'fixed inset-0 z-50 overflow-y-auto bg-stone-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-200'}>
       <div className={isPage
         ? 'h-full w-full bg-[#FCFBF9] overflow-hidden flex flex-col'
         : 'bg-[#FCFBF9] w-full max-w-6xl rounded-2xl shadow-2xl border border-stone-300 overflow-hidden flex flex-col max-h-[92vh]'}>
         {/* Header Bar */}
-        <div className="relative bg-[#121212] text-white px-6 py-4 flex items-center justify-center border-b border-stone-800">
-          <div className="flex items-center justify-center gap-5 sm:gap-8 text-center">
-            <div className="flex items-center justify-center gap-3">
-              <div className="w-12 h-12 rounded-lg bg-white flex items-center justify-center font-black shadow-md overflow-hidden shrink-0">
-                <img src={komseLogoImg} alt="KOMSE Logo" className="w-full h-full object-contain" />
-              </div>
-              <div className="w-9 h-9 rounded-lg bg-[#C5A059] text-stone-950 flex items-center justify-center font-black shadow-md">
-                <Shield className="w-5 h-5" />
-              </div>
+        <header className="bg-[#121212] text-white px-4 sm:px-6 h-16 shrink-0 flex items-center justify-between gap-3 border-b border-stone-800">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center overflow-hidden shrink-0 shadow-md">
+              <img src={komseLogoImg} alt="KOMSE Logo" className="w-full h-full object-contain" />
             </div>
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                <h2 className="text-lg font-black tracking-tight uppercase">KOMSE ADMIN PORTAL</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm sm:text-base font-black tracking-tight uppercase truncate">KOMSE Admin</h2>
                 {isAdminAuthenticated ? (
-                  <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest flex items-center gap-1">
-                    <Check className="w-3 h-3" /> Authenticated
+                  <span className="hidden sm:inline-flex bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider items-center gap-1">
+                    <Check className="w-3 h-3" /> Secure
                   </span>
                 ) : (
-                  <span className="bg-amber-500/20 text-amber-400 border border-amber-500/40 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest flex items-center gap-1">
+                  <span className="hidden sm:inline-flex bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider items-center gap-1">
                     <Lock className="w-3 h-3" /> Restricted
                   </span>
                 )}
               </div>
-              <p className="text-xs text-stone-400">Manage catalog inventory, customer orders, and account policy enforcement</p>
+              <p className="text-[11px] text-stone-400 truncate">
+                {isAdminAuthenticated ? activeTabMeta.title : 'Store management portal'}
+              </p>
             </div>
           </div>
 
-          <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0">
             {isAdminAuthenticated && (
               <button
                 onClick={() => {
                   setIsAdminAuthenticated(false);
                   showAdminToast('Signed out of Admin Session.');
                 }}
-                className="flex items-center gap-1.5 bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white px-3 py-1.5 rounded text-xs font-bold uppercase transition-colors cursor-pointer border border-stone-700"
-                title="Lock Admin Portal"
+                className="lg:hidden p-2.5 text-stone-400 hover:text-white hover:bg-stone-800 rounded-lg transition-colors cursor-pointer"
+                title="Sign out"
+                aria-label="Sign out"
               >
-                <LogOut className="w-3.5 h-3.5" /> Sign Out
+                <LogOut className="w-5 h-5" />
               </button>
             )}
-
             <button
               onClick={onClose}
-              className="p-2 text-stone-400 hover:text-white hover:bg-stone-800 rounded-lg transition-colors cursor-pointer"
+              className="p-2.5 text-stone-400 hover:text-white hover:bg-stone-800 rounded-lg transition-colors cursor-pointer"
+              title="Back to store"
+              aria-label="Back to store"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
-        </div>
+        </header>
 
         {/* ADMIN AUTHENTICATION GUARD SCREEN */}
         {!isAdminAuthenticated ? (
-          <div className="p-8 sm:p-12 bg-[#FAF9F6] flex flex-col items-center justify-center flex-1 my-auto">
-            <div className="w-full max-w-md bg-white p-8 rounded-2xl border border-stone-200 shadow-xl text-center space-y-6">
+          <div className="p-4 sm:p-12 bg-[#FAF9F6] flex flex-col items-center justify-center flex-1 overflow-y-auto">
+            <div className="w-full max-w-md bg-white p-6 sm:p-8 rounded-2xl border border-stone-200 shadow-xl text-center space-y-6">
               <div className="w-16 h-16 rounded-2xl bg-[#121212] text-[#C5A059] flex items-center justify-center mx-auto shadow-md border border-[#C5A059]/40">
                 <Lock className="w-8 h-8 text-[#C5A059]" />
               </div>
 
               <div>
-                <h3 className="text-xl font-black text-stone-900 uppercase">ADMIN AUTHENTICATION REQUIRED</h3>
+                <h3 className="text-lg sm:text-xl font-black text-stone-900 uppercase">Admin Sign In</h3>
                 <p className="text-xs text-stone-500 mt-1">
                   Access to product management, customer orders, and user account controls requires unique administrator credentials.
                 </p>
@@ -937,127 +951,141 @@ export const AdminModal: React.FC<AdminModalProps> = ({
           </div>
         ) : (
           <>
-            {/* Toast Notification in Admin */}
-            {adminToast && (
-              <div className="bg-[#121212] text-[#C5A059] px-6 py-2.5 text-xs font-bold flex items-center justify-between border-b border-stone-800 animate-in slide-in-from-top duration-200">
-                <div className="flex items-center gap-2">
-                  <Info className="w-4 h-4 text-[#C5A059]" />
-                  <span>{adminToast}</span>
-                </div>
-                <button onClick={() => setAdminToast(null)} className="text-stone-400 hover:text-white">
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
-
-            {/* Tab Navigation */}
-            <div className="bg-[#1A1A1A] px-6 flex items-center gap-2 border-b border-stone-800 overflow-x-auto">
-              {[
-                { id: 'overview', label: 'Dashboard Overview', icon: LayoutDashboard },
-                { id: 'products', label: `Products (${products.length})`, icon: Package },
-                { id: 'orders', label: `Orders (${orders.length})`, icon: ShoppingBag },
-                { id: 'reproductions', label: `Reproduction Requests (${reproductionRequests.length})`, icon: RefreshCcw },
-                { id: 'users', label: `Users & Policies (${users.length})`, icon: Users },
-                { id: 'activity', label: `Activity Log (${activityLogs.length})`, icon: Activity },
-              ].map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
+            <div className="flex-1 min-h-0 flex">
+              {/* Sidebar Navigation (desktop) */}
+              <aside className="hidden lg:flex w-64 shrink-0 flex-col bg-[#161616] border-r border-stone-800">
+                <nav className="flex-1 overflow-y-auto p-3 space-y-1" aria-label="Admin sections">
+                  <p className="px-3 pt-2 pb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-stone-500">Manage</p>
+                  {adminTabs.map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        data-admin-tab={tab.id}
+                        onClick={() => selectAdminTab(tab.id)}
+                        aria-current={isActive ? 'page' : undefined}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
+                          isActive ? 'bg-[#C5A059] text-stone-950' : 'text-stone-400 hover:text-white hover:bg-white/5'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4 shrink-0" />
+                        <span className="flex-1 text-left truncate">{tab.label}</span>
+                        {tab.count !== undefined && (
+                          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${isActive ? 'bg-stone-950/15' : 'bg-white/10 text-stone-300'}`}>
+                            {tab.count}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </nav>
+                <div className="p-3 border-t border-stone-800">
                   <button
-                    key={tab.id}
                     onClick={() => {
-                      setActiveTab(tab.id as AdminTab);
-                      setIsAddingProduct(false);
-                      setIsAddingOrder(false);
-                      setIsAddingUser(false);
+                      setIsAdminAuthenticated(false);
+                      showAdminToast('Signed out of Admin Session.');
                     }}
-                    className={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-wider cursor-pointer border-b-2 transition-all whitespace-nowrap ${
-                      isActive
-                        ? 'border-[#C5A059] text-[#C5A059] bg-[#242424]'
-                        : 'border-transparent text-stone-400 hover:text-stone-200 hover:bg-[#222]'
-                    }`}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-stone-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
                   >
-                    <Icon className="w-4 h-4" />
-                    <span>{tab.label}</span>
+                    <LogOut className="w-4 h-4" /> Sign out
                   </button>
-                );
-              })}
-            </div>
+                </div>
+              </aside>
+
+              <div className="flex-1 min-w-0 flex flex-col">
+                {/* Toast Notification in Admin */}
+                {adminToast && (
+                  <div className="bg-[#1E1B16] text-[#E2C68C] px-4 sm:px-6 py-2.5 text-xs font-semibold flex items-center justify-between gap-3 border-b border-stone-800" role="status">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Info className="w-4 h-4 shrink-0 text-[#C5A059]" />
+                      <span className="truncate">{adminToast}</span>
+                    </div>
+                    <button onClick={() => setAdminToast(null)} className="p-1 text-stone-400 hover:text-white cursor-pointer" aria-label="Dismiss">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
 
             {/* Body Content */}
-            <div className="p-6 overflow-y-auto flex-1 min-h-0 bg-[#FAF9F6]">
+            <div className="px-4 py-5 sm:p-6 lg:p-8 overflow-y-auto flex-1 min-h-0 bg-[#FAF9F6]">
+              <div className="max-w-7xl mx-auto">
+              <div className="mb-5 sm:mb-6">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-stone-900">{activeTabMeta.title}</h1>
+                <p className="text-xs sm:text-sm text-stone-500 mt-0.5">{activeTabMeta.description}</p>
+              </div>
               {/* OVERVIEW TAB */}
               {activeTab === 'overview' && (
                 <div className="space-y-6">
                   {/* KPI Cards Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="bg-white p-5 rounded-xl border border-stone-200 shadow-xs space-y-2">
-                      <div className="flex items-center justify-between text-stone-500 text-xs font-bold uppercase">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-2 min-w-0">
+                      <div className="flex items-center justify-between gap-2 text-stone-500 text-[10px] sm:text-xs font-bold uppercase tracking-wide">
                         <span>Total Revenue</span>
                         <div className="p-2 rounded-lg bg-amber-50 text-[#C5A059]">
                           <DollarSign className="w-4 h-4" />
                         </div>
                       </div>
-                      <div className="text-2xl font-black text-stone-900">{formatPrice(totalRevenueEur)}</div>
+                      <div className="text-xl sm:text-2xl font-black text-stone-900 truncate">{formatPrice(totalRevenueEur)}</div>
                       <div className="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
-                        <TrendingUp className="w-3.5 h-3.5" /> +18.4% from last month
+                        <TrendingUp className="w-3.5 h-3.5 shrink-0" /> {orders.filter((o) => o.status !== 'Cancelled').length} paid orders
                       </div>
                     </div>
 
-                    <div className="bg-white p-5 rounded-xl border border-stone-200 shadow-xs space-y-2">
-                      <div className="flex items-center justify-between text-stone-500 text-xs font-bold uppercase">
+                    <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-2 min-w-0">
+                      <div className="flex items-center justify-between gap-2 text-stone-500 text-[10px] sm:text-xs font-bold uppercase tracking-wide">
                         <span>Total Orders</span>
                         <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
                           <ShoppingBag className="w-4 h-4" />
                         </div>
                       </div>
-                      <div className="text-2xl font-black text-stone-900">{totalOrdersCount}</div>
+                      <div className="text-xl sm:text-2xl font-black text-stone-900 truncate">{totalOrdersCount}</div>
                       <div className="text-[11px] text-stone-500">
                         {orders.filter((o) => o.status === 'Processing').length} awaiting shipment
                       </div>
                     </div>
 
-                    <div className="bg-white p-5 rounded-xl border border-stone-200 shadow-xs space-y-2">
-                      <div className="flex items-center justify-between text-stone-500 text-xs font-bold uppercase">
+                    <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-2 min-w-0">
+                      <div className="flex items-center justify-between gap-2 text-stone-500 text-[10px] sm:text-xs font-bold uppercase tracking-wide">
                         <span>Active Products</span>
                         <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
                           <Package className="w-4 h-4" />
                         </div>
                       </div>
-                      <div className="text-2xl font-black text-stone-900">{totalProductsCount}</div>
+                      <div className="text-xl sm:text-2xl font-black text-stone-900 truncate">{totalProductsCount}</div>
                       <div className="text-[11px] text-stone-500">
                         {products.filter((p) => p.inStock).length} currently in stock
                       </div>
                     </div>
 
-                    <div className="bg-white p-5 rounded-xl border border-stone-200 shadow-xs space-y-2">
-                      <div className="flex items-center justify-between text-stone-500 text-xs font-bold uppercase">
-                        <span>Users & Policies</span>
+                    <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-2 min-w-0">
+                      <div className="flex items-center justify-between gap-2 text-stone-500 text-[10px] sm:text-xs font-bold uppercase tracking-wide">
+                        <span>Users</span>
                         <div className="p-2 rounded-lg bg-purple-50 text-purple-600">
                           <Users className="w-4 h-4" />
                         </div>
                       </div>
-                      <div className="text-2xl font-black text-stone-900">{totalUsersCount}</div>
+                      <div className="text-xl sm:text-2xl font-black text-stone-900 truncate">{totalUsersCount}</div>
                       <div className="text-[11px] text-red-600 font-bold flex items-center gap-1">
-                        <UserX className="w-3.5 h-3.5" /> {suspendedUsersCount} suspended for policy
+                        <UserX className="w-3.5 h-3.5 shrink-0" /> {suspendedUsersCount} suspended
                       </div>
                     </div>
                   </div>
 
                   {/* Quick Actions Bar */}
-                  <div className="bg-[#121212] text-white p-5 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="bg-[#121212] text-white p-4 sm:p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                       <h3 className="text-base font-black uppercase text-[#C5A059]">Quick Admin Shortcuts</h3>
                       <p className="text-xs text-stone-300">Add inventory, update customer records, or process orders directly</p>
                     </div>
-                    <div className="flex flex-wrap gap-2.5">
+                    <div className="grid grid-cols-1 sm:flex sm:flex-wrap gap-2">
                       <button
                         onClick={() => {
                           setActiveTab('products');
                           setIsAddingProduct(true);
                           setEditingProduct(null);
                         }}
-                        className="bg-[#C5A059] hover:bg-[#A88238] text-stone-950 px-4 py-2 rounded-lg text-xs font-bold uppercase flex items-center gap-1.5 cursor-pointer transition-colors"
+                        className="bg-[#C5A059] hover:bg-[#A88238] text-stone-950 px-4 py-2.5 rounded-lg text-xs font-bold uppercase flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
                       >
                         <Plus className="w-4 h-4" /> Add Product
                       </button>
@@ -1066,7 +1094,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           setActiveTab('orders');
                           setIsAddingOrder(true);
                         }}
-                        className="bg-stone-800 hover:bg-stone-700 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase flex items-center gap-1.5 cursor-pointer transition-colors"
+                        className="bg-stone-800 hover:bg-stone-700 text-white px-4 py-2.5 rounded-lg text-xs font-bold uppercase flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
                       >
                         <Plus className="w-4 h-4" /> Add Manual Order
                       </button>
@@ -1076,7 +1104,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           setIsAddingUser(true);
                           setEditingUser(null);
                         }}
-                        className="bg-stone-800 hover:bg-stone-700 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase flex items-center gap-1.5 cursor-pointer transition-colors"
+                        className="bg-stone-800 hover:bg-stone-700 text-white px-4 py-2.5 rounded-lg text-xs font-bold uppercase flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
                       >
                         <Plus className="w-4 h-4" /> Add User
                       </button>
@@ -1084,12 +1112,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   </div>
 
                   {/* Financial Overview Section with Trend Line Chart */}
-                  <div className="bg-white p-5 sm:p-6 rounded-xl border border-stone-200 shadow-xs space-y-4">
+                  <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-stone-200 pb-4">
                       <div>
                         <div className="flex items-center gap-2">
                           <TrendingUp className="w-5 h-5 text-[#C5A059]" />
-                          <h3 className="font-black text-stone-900 uppercase text-base tracking-wide">Financial Overview & Revenue Trends</h3>
+                          <h3 className="font-black text-stone-900 uppercase text-sm sm:text-base tracking-wide">Revenue Trend</h3>
                         </div>
                         <p className="text-xs text-stone-500 mt-0.5">
                           Order value progression over time generated dynamically from user orders ({orders.length} orders total)
@@ -1113,7 +1141,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         No active order records found to chart revenue trends.
                       </div>
                     ) : (
-                      <div className="w-full h-72 pt-2">
+                      <div className="w-full h-56 sm:h-72 pt-2">
                         <ResponsiveContainer width="100%" height="100%">
                           <AreaChart data={financialTrendData} margin={{ top: 10, right: 15, left: 0, bottom: 0 }}>
                             <defs>
@@ -1135,7 +1163,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                               fontSize={11}
                               tickLine={false}
                               axisLine={{ stroke: '#E7E5E4' }}
-                              tickFormatter={(value) => formatPrice(value)}
+                              tickFormatter={(value) => `€${Math.round(Number(value)).toLocaleString('en-US')}`}
+                              width={60}
                             />
                             <RechartsTooltip
                               content={({ active, payload }) => {
@@ -1181,7 +1210,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   </div>
 
                   {/* Recent Orders Overview */}
-                  <div className="bg-white p-5 rounded-xl border border-stone-200 shadow-xs space-y-4">
+                  <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-4">
                     <div className="flex items-center justify-between border-b border-stone-200 pb-3">
                       <h3 className="font-black text-stone-900 uppercase text-sm">Recent Store Orders</h3>
                       <button
@@ -1226,7 +1255,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   </div>
 
                   {/* Recent System Activity Preview */}
-                  <div className="bg-white p-5 rounded-xl border border-stone-200 shadow-xs space-y-4">
+                  <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-4">
                     <div className="flex items-center justify-between border-b border-stone-200 pb-3">
                       <div className="flex items-center gap-2">
                         <Activity className="w-4 h-4 text-[#C5A059]" />
@@ -1663,9 +1692,9 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   )}
 
                   {/* Products Table */}
-                  <div className="bg-white rounded-xl border border-stone-200 shadow-xs overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
+                  <div className="lg:bg-white lg:rounded-xl lg:border lg:border-stone-200 lg:shadow-xs lg:overflow-hidden">
+                    <div className="lg:overflow-x-auto">
+                      <table className="admin-table w-full text-left border-collapse">
                         <thead>
                           <tr className="bg-stone-100 text-stone-600 text-[11px] font-bold uppercase tracking-wider border-b border-stone-200">
                             <th className="p-3.5">Product</th>
@@ -1680,23 +1709,23 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         <tbody className="divide-y divide-stone-100 text-xs">
                           {filteredProducts.map((p) => (
                             <tr key={p.id} className="hover:bg-stone-50/80 transition-colors">
-                              <td className="p-3.5 flex items-center gap-3">
+                              <td data-label="Product" className="p-3.5 flex items-center gap-3">
                                 <img src={p.image} alt={p.name} className="w-10 h-10 object-cover rounded-md border border-stone-200 bg-stone-100" />
                                 <div>
                                   <div className="font-bold text-stone-900">{p.name}</div>
                                   <div className="text-[10px] text-stone-400">ID: {p.id}</div>
                                 </div>
                               </td>
-                              <td className="p-3.5 text-stone-700 font-medium">{p.category}</td>
-                              <td className="p-3.5 font-bold text-stone-900">{formatPrice(p.price)}</td>
-                              <td className="p-3.5">
+                              <td data-label="Category" className="p-3.5 text-stone-700 font-medium">{p.category}</td>
+                              <td data-label="Price" className="p-3.5 font-bold text-stone-900">{formatPrice(p.price)}</td>
+                              <td data-label="Rating" className="p-3.5">
                                 <div className="flex items-center gap-1 text-stone-900 font-bold">
                                   <Star className="w-3.5 h-3.5 text-[#C5A059] fill-[#C5A059]" />
                                   <span>{p.rating ? p.rating.toFixed(1) : '5.0'}</span>
                                   <span className="text-[10px] text-stone-400 font-normal">({p.reviewCount || 0})</span>
                                 </div>
                               </td>
-                              <td className="p-3.5">
+                              <td data-label="Status" className="p-3.5">
                                 <button
                                   onClick={() => onUpdateProduct({ ...p, inStock: !p.inStock })}
                                   className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase cursor-pointer transition-colors ${
@@ -1706,7 +1735,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                   {p.inStock ? 'In Stock' : 'Out of Stock'}
                                 </button>
                               </td>
-                              <td className="p-3.5">
+                              <td data-label="Badges" className="p-3.5">
                                 <div className="flex items-center gap-1">
                                   {p.isBestSeller && (
                                     <span className="bg-[#C5A059]/20 text-[#C5A059] border border-[#C5A059]/40 text-[9px] font-bold px-1.5 py-0.5 rounded">
@@ -1720,7 +1749,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                   )}
                                 </div>
                               </td>
-                              <td className="p-3.5 text-right">
+                              <td data-label="Actions" className="p-3.5 text-right">
                                 <div className="flex items-center justify-end gap-2">
                                   <button
                                     onClick={() => startEditProduct(p)}
@@ -1877,9 +1906,9 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   )}
 
                   {/* Orders Table */}
-                  <div className="bg-white rounded-xl border border-stone-200 shadow-xs overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
+                  <div className="lg:bg-white lg:rounded-xl lg:border lg:border-stone-200 lg:shadow-xs lg:overflow-hidden">
+                    <div className="lg:overflow-x-auto">
+                      <table className="admin-table w-full text-left border-collapse">
                         <thead>
                           <tr className="bg-stone-100 text-stone-600 text-[11px] font-bold uppercase tracking-wider border-b border-stone-200">
                             <th className="p-3.5">Order Info</th>
@@ -1895,17 +1924,19 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         <tbody className="divide-y divide-stone-100 text-xs">
                           {filteredOrders.map((order) => (
                             <tr key={order.id} className="hover:bg-stone-50/80 transition-colors">
-                              <td className="p-3.5">
+                              <td data-label="Order Info" className="p-3.5">
                                 <div className="font-bold text-stone-900">{order.id}</div>
                                 <div className="text-[10px] text-stone-500">{order.date}</div>
                               </td>
-                              <td className="p-3.5">
-                                <div className="font-bold text-stone-900">{order.customerName || 'Customer'}</div>
-                                <div className="text-[10px] text-stone-500">{order.customerEmail || 'N/A'}</div>
+                              <td data-label="Customer" className="p-3.5">
+                                <div className="min-w-0">
+                                  <div className="font-bold text-stone-900">{order.customerName || 'Customer'}</div>
+                                  <div className="text-[10px] text-stone-500 break-all">{order.customerEmail || 'N/A'}</div>
+                                </div>
                               </td>
-                              <td className="p-3.5 max-w-xs text-stone-700 truncate">{order.itemsSummary}</td>
-                              <td className="p-3.5 font-bold text-stone-900">{formatPrice(order.totalAmountEur)}</td>
-                              <td className="p-3.5">
+                              <td data-label="Items Purchased" className="p-3.5 max-w-xs text-stone-700 truncate">{order.itemsSummary}</td>
+                              <td data-label="Amount" className="p-3.5 font-bold text-stone-900">{formatPrice(order.totalAmountEur)}</td>
+                              <td data-label="Customer Rating" className="p-3.5">
                                 {order.rating ? (
                                   <div className="space-y-0.5">
                                     <div className="flex items-center gap-1 text-[#C5A059] font-bold">
@@ -1923,7 +1954,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                   <span className="text-stone-400 text-[10px] italic">Not rated yet</span>
                                 )}
                               </td>
-                              <td className="p-3.5 font-mono text-[11px]">
+                              <td data-label="Tracking #" className="p-3.5 font-mono text-[11px]">
                                 {editingOrderTracking?.id === order.id ? (
                                   <div className="flex items-center gap-1">
                                     <input
@@ -1953,7 +1984,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                   </button>
                                 )}
                               </td>
-                              <td className="p-3.5">
+                              <td data-label="Status" className="p-3.5">
                                 <select
                                   value={order.status}
                                   onChange={(e) => handleOrderStatusChange(order.id, e.target.value as UserOrder['status'])}
@@ -1973,7 +2004,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                   <option value="Cancelled">Cancelled</option>
                                 </select>
                               </td>
-                              <td className="p-3.5 text-right">
+                              <td data-label="Action" className="p-3.5 text-right">
                                 <button
                                   onClick={() => setDeleteConfirmation({ type: 'order', id: order.id, label: `Order ${order.id}` })}
                                   className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded cursor-pointer"
@@ -1995,7 +2026,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               {activeTab === 'reproductions' && (
                 <div className="space-y-6">
                   {/* KPI Cards for Reproductions */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-xs space-y-1">
                       <span className="text-stone-500 text-[10px] font-bold uppercase tracking-wider">Total Requests</span>
                       <p className="text-2xl font-black text-stone-900">{reproductionRequests.length}</p>
@@ -2053,9 +2084,9 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   </div>
 
                   {/* Reproductions Table */}
-                  <div className="bg-white rounded-xl border border-stone-200 shadow-xs overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse text-xs">
+                  <div className="lg:bg-white lg:rounded-xl lg:border lg:border-stone-200 lg:shadow-xs lg:overflow-hidden">
+                    <div className="lg:overflow-x-auto">
+                      <table className="admin-table w-full text-left border-collapse text-xs">
                         <thead>
                           <tr className="bg-stone-100 border-b border-stone-200 text-stone-600 uppercase font-black tracking-wider text-[10px]">
                             <th className="p-3.5">Request ID & Date</th>
@@ -2077,11 +2108,11 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           ) : (
                             filteredReproductionRequests.map((req) => (
                               <tr key={req.id} className="hover:bg-stone-50/80 transition-colors">
-                                <td className="p-3.5">
+                                <td data-label="Request ID & Date" className="p-3.5">
                                   <span className="font-mono font-bold text-stone-900 block">{req.id}</span>
                                   <span className="text-[10px] text-stone-500">{req.requestedAt}</span>
                                 </td>
-                                <td className="p-3.5">
+                                <td data-label="Out of Stock Item" className="p-3.5">
                                   <div className="flex items-center gap-2.5">
                                     <img
                                       src={req.productImage}
@@ -2096,7 +2127,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                     </div>
                                   </div>
                                 </td>
-                                <td className="p-3.5">
+                                <td data-label="Requested Specs" className="p-3.5">
                                   <div className="space-y-0.5">
                                     <span className="inline-block bg-stone-100 text-stone-800 text-[10px] font-bold px-2 py-0.5 rounded border border-stone-200 mr-1">
                                       Size: {req.selectedSize}
@@ -2106,7 +2137,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                     </span>
                                   </div>
                                 </td>
-                                <td className="p-3.5 font-medium">
+                                <td data-label="Customer Contact" className="p-3.5 font-medium">
                                   <a
                                     href={`mailto:${req.customerContact}`}
                                     className="text-stone-900 hover:text-[#C5A059] underline font-semibold flex items-center gap-1"
@@ -2115,10 +2146,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                     {req.customerContact}
                                   </a>
                                 </td>
-                                <td className="p-3.5 text-stone-600 max-w-xs truncate" title={req.notes || 'None'}>
+                                <td data-label="Notes" className="p-3.5 text-stone-600 max-w-xs truncate" title={req.notes || 'None'}>
                                   {req.notes || <span className="text-stone-400 italic">No notes provided</span>}
                                 </td>
-                                <td className="p-3.5">
+                                <td data-label="Status Action" className="p-3.5">
                                   <select
                                     value={req.status}
                                     onChange={(e) => {
@@ -2144,7 +2175,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                     <option value="Declined">Declined</option>
                                   </select>
                                 </td>
-                                <td className="p-3.5 text-right">
+                                <td data-label="Delete" className="p-3.5 text-right">
                                   <button
                                     onClick={() => setDeleteConfirmation({ type: 'reproduction', id: req.id, label: `Reproduction request ${req.id}` })}
                                     className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded cursor-pointer"
@@ -2311,9 +2342,9 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   )}
 
                   {/* Users Table */}
-                  <div className="bg-white rounded-xl border border-stone-200 shadow-xs overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
+                  <div className="lg:bg-white lg:rounded-xl lg:border lg:border-stone-200 lg:shadow-xs lg:overflow-hidden">
+                    <div className="lg:overflow-x-auto">
+                      <table className="admin-table w-full text-left border-collapse">
                         <thead>
                           <tr className="bg-stone-100 text-stone-600 text-[11px] font-bold uppercase tracking-wider border-b border-stone-200">
                             <th className="p-3.5">User Details</th>
@@ -2321,13 +2352,13 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                             <th className="p-3.5">Location</th>
                             <th className="p-3.5">Role</th>
                             <th className="p-3.5">Account Status</th>
-                            <th className="p-3.5 text-right">Policy & Security Actions</th>
+                            <th className="p-3.5 text-right">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-stone-100 text-xs">
                           {filteredUsers.map((u) => (
                             <tr key={u.id} className="hover:bg-stone-50/80 transition-colors">
-                              <td className="p-3.5 flex items-center gap-2.5">
+                              <td data-label="User Details" className="p-3.5 flex items-center gap-2.5">
                                 <div className="w-9 h-9 rounded-full bg-[#121212] text-[#C5A059] flex items-center justify-center font-black text-xs border border-[#C5A059]/30">
                                   {u.name.charAt(0).toUpperCase()}
                                 </div>
@@ -2340,16 +2371,18 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                 </div>
                               </td>
 
-                              <td className="p-3.5">
-                                <div className="font-medium text-stone-800">{u.email}</div>
-                                {u.phone && <div className="text-[10px] text-stone-500">{u.phone}</div>}
+                              <td data-label="Contact" className="p-3.5">
+                                <div className="min-w-0">
+                                  <div className="font-medium text-stone-800 break-all">{u.email}</div>
+                                  {u.phone && <div className="text-[10px] text-stone-500">{u.phone}</div>}
+                                </div>
                               </td>
 
-                              <td className="p-3.5 text-stone-700">
+                              <td data-label="Location" className="p-3.5 text-stone-700">
                                 {u.city ? `${u.city}, ${u.country || 'France'}` : u.country || 'France'}
                               </td>
 
-                              <td className="p-3.5">
+                              <td data-label="Role" className="p-3.5">
                                 <span
                                   className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
                                     u.role === 'Admin' ? 'bg-[#C5A059] text-stone-950 font-extrabold' : 'bg-stone-100 text-stone-800'
@@ -2359,7 +2392,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                 </span>
                               </td>
 
-                              <td className="p-3.5">
+                              <td data-label="Account Status" className="p-3.5">
                                 {u.status === 'Suspended' ? (
                                   <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-red-100 text-red-800 border border-red-200">
                                     <UserX className="w-3 h-3" /> Suspended
@@ -2371,7 +2404,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                 )}
                               </td>
 
-                              <td className="p-3.5 text-right">
+                              <td data-label="Actions" className="p-3.5 text-right">
                                 <div className="flex items-center justify-end gap-1.5">
                                   {/* Reset Password Action */}
                                   <button
@@ -2512,6 +2545,39 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   </div>
                 </div>
               )}
+              </div>
+            </div>
+
+                {/* Bottom Navigation (mobile & tablet) */}
+                <nav className="lg:hidden shrink-0 bg-white border-t border-stone-200 grid grid-cols-6 pb-[env(safe-area-inset-bottom)]" aria-label="Admin sections">
+                  {adminTabs.map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        data-admin-tab-mobile={tab.id}
+                        onClick={() => selectAdminTab(tab.id)}
+                        aria-current={isActive ? 'page' : undefined}
+                        className={`relative flex flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-semibold transition-colors cursor-pointer ${
+                          isActive ? 'text-stone-950' : 'text-stone-400 hover:text-stone-700'
+                        }`}
+                      >
+                        {isActive && <span className="absolute top-0 inset-x-3 h-0.5 rounded-full bg-[#C5A059]" />}
+                        <span className="relative">
+                          <Icon className={`w-5 h-5 ${isActive ? 'text-[#A88238]' : ''}`} />
+                          {!!tab.count && tab.id !== 'overview' && tab.id !== 'activity' && (
+                            <span className="absolute -top-1.5 -right-2.5 min-w-4 h-4 px-1 rounded-full bg-stone-900 text-white text-[9px] font-bold flex items-center justify-center">
+                              {tab.count > 99 ? '99+' : tab.count}
+                            </span>
+                          )}
+                        </span>
+                        <span className="truncate max-w-full px-0.5">{tab.shortLabel}</span>
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
             </div>
           </>
         )}
