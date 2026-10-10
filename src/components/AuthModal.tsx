@@ -553,40 +553,55 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
     }
   };
 
+  const accountTabs: { id: 'orders' | 'address' | 'profile'; label: string; shortLabel: string; icon: typeof Package; count?: number }[] = [
+    { id: 'orders', label: 'My orders', shortLabel: 'Orders', icon: Package, count: userOrders.length },
+    { id: 'address', label: 'Delivery address', shortLabel: 'Address', icon: MapPin },
+    { id: 'profile', label: 'Profile', shortLabel: 'Profile', icon: User },
+  ];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in">
-      <div className="bg-[#FCFBF9] w-full max-w-2xl rounded-2xl shadow-2xl border border-stone-300 relative overflow-hidden flex flex-col max-h-[90vh]">
+    <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm animate-in fade-in ${currentUser ? 'sm:p-4' : 'p-4'}`}>
+      <div
+        className={`bg-[#FCFBF9] w-full shadow-2xl relative overflow-hidden flex flex-col ${
+          currentUser
+            ? 'h-dvh sm:h-[min(780px,92vh)] sm:max-w-4xl sm:rounded-2xl sm:border sm:border-stone-300'
+            : 'max-w-2xl rounded-2xl border border-stone-300 max-h-[90vh]'
+        }`}
+      >
         {/* Modal Top Bar */}
-        <div className="bg-[#121212] text-white p-6 relative flex-shrink-0">
+        <div className={`bg-[#121212] text-white relative flex-shrink-0 ${currentUser ? 'px-4 py-3.5 sm:px-6 sm:py-4' : 'p-6'}`}>
           <button
             onClick={onClose}
-            className="absolute top-5 right-5 p-2 text-stone-400 hover:text-white rounded-full hover:bg-stone-800 transition-colors cursor-pointer"
+            aria-label="Close"
+            className={`absolute right-3 sm:right-5 p-2 text-stone-400 hover:text-white rounded-full hover:bg-stone-800 transition-colors cursor-pointer ${currentUser ? 'top-1/2 -translate-y-1/2' : 'top-5'}`}
           >
             <X className="w-5 h-5" />
           </button>
 
           {currentUser ? (
-            <div className="flex items-center gap-4 pr-8">
+            <div className="flex items-center gap-3 pr-10 min-w-0">
               {currentUser.profilePicture ? (
                 <img
                   src={currentUser.profilePicture}
                   alt={`${currentUser.name} profile`}
-                  className="w-14 h-14 rounded-full object-cover shadow-md border-2 border-white/20"
+                  className="w-11 h-11 sm:w-12 sm:h-12 rounded-full object-cover shadow-md ring-2 ring-[#C5A059]/60 shrink-0"
                 />
               ) : (
-                <div className="w-14 h-14 rounded-full bg-[#C5A059] text-stone-950 flex items-center justify-center text-xl font-black shadow-md border-2 border-white/20">
+                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[#C5A059] text-stone-950 flex items-center justify-center text-lg font-black shadow-md ring-2 ring-white/10 shrink-0">
                   {currentUser.name.charAt(0).toUpperCase()}
                 </div>
               )}
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-bold text-white">{currentUser.name}</h2>
-                  <span className="bg-[#C5A059]/20 text-[#C5A059] text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider border border-[#C5A059]/30">
-                    VIP Member
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <h2 className="text-base sm:text-lg font-black text-white truncate">{currentUser.name}</h2>
+                  <span className="hidden sm:inline-flex shrink-0 bg-[#C5A059]/15 text-[#E2C68C] text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border border-[#C5A059]/30">
+                    Member
                   </span>
                 </div>
-                <p className="text-xs text-stone-400">{currentUser.email}</p>
-                <p className="text-[11px] text-stone-500">Member since {currentUser.joinedDate || '2024'}</p>
+                <p className="text-[11px] sm:text-xs text-stone-400 truncate">
+                  {currentUser.email}
+                  <span className="hidden sm:inline"> · Member since {currentUser.joinedDate || '2024'}</span>
+                </p>
               </div>
             </div>
           ) : (
@@ -606,43 +621,82 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
 
         {/* LOGGED IN USER DASHBOARD */}
         {currentUser ? (
-          <div className="flex flex-col flex-1 overflow-hidden">
-            {/* Dashboard Tabs Bar */}
-            <div className="flex border-b border-stone-200 bg-[#F4F3EF] px-6 text-xs font-bold text-stone-700 flex-shrink-0">
-              <button
-                onClick={() => setDashboardTab('orders')}
-                className={`py-3 px-4 border-b-2 cursor-pointer flex items-center gap-1.5 transition-colors ${
-                  dashboardTab === 'orders'
-                    ? 'border-[#C5A059] text-stone-950 font-extrabold bg-white'
-                    : 'border-transparent hover:text-stone-900'
-                }`}
-              >
-                <Package className="w-4 h-4 text-[#C5A059]" /> My Orders ({userOrders.length})
-              </button>
-              <button
-                onClick={() => setDashboardTab('address')}
-                className={`py-3 px-4 border-b-2 cursor-pointer flex items-center gap-1.5 transition-colors ${
-                  dashboardTab === 'address'
-                    ? 'border-[#C5A059] text-stone-950 font-extrabold bg-white'
-                    : 'border-transparent hover:text-stone-900'
-                }`}
-              >
-                <MapPin className="w-4 h-4 text-[#C5A059]" /> Delivery Address
-              </button>
-              <button
-                onClick={() => setDashboardTab('profile')}
-                className={`py-3 px-4 border-b-2 cursor-pointer flex items-center gap-1.5 transition-colors ${
-                  dashboardTab === 'profile'
-                    ? 'border-[#C5A059] text-stone-950 font-extrabold bg-white'
-                    : 'border-transparent hover:text-stone-900'
-                }`}
-              >
-                <User className="w-4 h-4 text-[#C5A059]" /> Profile Details
-              </button>
-            </div>
+          <div className="flex flex-1 min-h-0">
+            {/* Sidebar Navigation (desktop) */}
+            <aside className="hidden md:flex w-56 shrink-0 flex-col bg-[#F4F3EF] border-r border-stone-200">
+              <nav className="flex-1 p-3 space-y-1" aria-label="Account sections">
+                <p className="px-3 pt-2 pb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-stone-400">My Account</p>
+                {accountTabs.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = dashboardTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      data-account-tab={tab.id}
+                      onClick={() => {
+                        setDashboardTab(tab.id);
+                        setTrackingOrder(null);
+                      }}
+                      aria-current={isActive ? 'page' : undefined}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
+                        isActive ? 'bg-stone-900 text-white shadow-sm' : 'text-stone-600 hover:text-stone-900 hover:bg-white'
+                      }`}
+                    >
+                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#C5A059]' : ''}`} />
+                      <span className="flex-1 text-left truncate">{tab.label}</span>
+                      {tab.count !== undefined && (
+                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${isActive ? 'bg-white/15' : 'bg-stone-200 text-stone-600'}`}>
+                          {tab.count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </nav>
+              <div className="p-3 border-t border-stone-200">
+                <button
+                  onClick={() => {
+                    onLogout();
+                    onClose();
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" /> Sign out
+                </button>
+              </div>
+            </aside>
+
+            <div className="flex-1 min-w-0 flex flex-col min-h-0">
+              {/* Segmented Tabs (phones) */}
+              <div className="md:hidden px-4 pt-4 shrink-0">
+                <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-stone-200/70" role="tablist" aria-label="Account sections">
+                  {accountTabs.map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = dashboardTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        data-account-tab={tab.id}
+                        role="tab"
+                        aria-selected={isActive}
+                        onClick={() => {
+                          setDashboardTab(tab.id);
+                          setTrackingOrder(null);
+                        }}
+                        className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          isActive ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500'
+                        }`}
+                      >
+                        <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-[#A88238]' : ''}`} />
+                        {tab.shortLabel}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
             {/* Dashboard Content Panel */}
-            <div className="p-6 overflow-y-auto flex-1 text-xs">
+            <div className="px-4 py-5 sm:p-6 overflow-y-auto flex-1 text-xs">
               {dashboardTab === 'orders' && (
                 <div>
                   {trackingOrder ? (
@@ -653,7 +707,7 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                           onClick={() => setTrackingOrder(null)}
                           className="flex items-center gap-1.5 text-stone-900 font-bold hover:text-[#C5A059] transition-colors cursor-pointer text-xs"
                         >
-                          <ArrowLeft className="w-4 h-4 text-[#C5A059]" /> ← Back to Order List
+                          <ArrowLeft className="w-4 h-4 text-[#C5A059]" /> Back to orders
                         </button>
 
                         <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">
@@ -662,7 +716,7 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                       </div>
 
                       {/* Order & Carrier Card Header */}
-                      <div className="bg-[#121212] text-white p-5 rounded-xl border border-stone-800 space-y-4 shadow-md">
+                      <div className="bg-[#121212] text-white p-4 sm:p-5 rounded-2xl border border-stone-800 space-y-4 shadow-md">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div>
                             <span className="text-[10px] font-bold text-[#C5A059] uppercase tracking-widest block">
@@ -680,9 +734,9 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                                 trackingOrder.status === 'Delivered'
                                   ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
                                   : trackingOrder.status === 'Shipped'
-                                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                                  : trackingOrder.status === 'Processing'
                                   ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
+                                  : trackingOrder.status === 'Processing'
+                                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                                   : 'bg-red-500/20 text-red-400 border border-red-500/40'
                               }`}
                             >
@@ -871,13 +925,26 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                   ) : (
                     /* Standard Orders List */
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between pb-2 border-b border-stone-200">
-                        <h3 className="font-bold text-stone-900 text-sm uppercase">Order History</h3>
-                        <span className="text-stone-500 text-[11px]">Click "Track Shipment" to view real-time location</span>
+                      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                        {[
+                          { label: 'Orders', value: String(userOrders.length) },
+                          { label: 'In progress', value: String(userOrders.filter((o) => o.status === 'Processing' || o.status === 'Shipped').length) },
+                          { label: 'Total spent', value: `€${userOrders.filter((o) => o.status !== 'Cancelled').reduce((sum, o) => sum + o.totalAmountEur, 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
+                        ].map((stat) => (
+                          <div key={stat.label} className="bg-white border border-stone-200 rounded-2xl p-3 sm:p-4 min-w-0">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-stone-500 truncate">{stat.label}</p>
+                            <p className="text-base sm:text-xl font-black text-stone-900 mt-1 truncate">{stat.value}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="flex items-end justify-between pt-1">
+                        <h3 className="font-black text-stone-900 text-base">Order history</h3>
+                        <span className="hidden sm:inline text-stone-500 text-[11px]">Track a shipment to see its live progress</span>
                       </div>
 
                       {userOrders.length === 0 ? (
-                        <div className="text-center py-10 space-y-3 bg-stone-100/60 rounded-xl p-6">
+                        <div className="text-center py-10 space-y-3 bg-white border border-dashed border-stone-300 rounded-2xl p-6">
                           <Package className="w-10 h-10 text-stone-400 mx-auto" />
                           <p className="font-bold text-stone-800 text-sm">No orders placed yet</p>
                           <p className="text-stone-500">
@@ -889,9 +956,9 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                           {userOrders.map((ord) => (
                             <div
                               key={ord.id}
-                              className="border border-stone-200 rounded-xl p-4 bg-white space-y-3 shadow-2xs hover:border-stone-300 transition-colors"
+                              className="border border-stone-200 rounded-2xl p-4 bg-white space-y-3 shadow-xs hover:border-stone-300 hover:shadow-sm transition-all"
                             >
-                              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 pb-2.5">
+                              <div className="flex items-start justify-between gap-3 border-b border-stone-100 pb-3">
                                 <div>
                                   <span className="font-extrabold text-stone-900 text-sm block">
                                     {ord.id}
@@ -899,12 +966,16 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                                   <span className="text-[11px] text-stone-500">Placed on {ord.date}</span>
                                 </div>
 
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-col items-end gap-1.5 shrink-0">
                                   <span
-                                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                                    className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border ${
                                       ord.status === 'Delivered'
-                                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                                        : 'bg-amber-100 text-amber-800 border border-amber-300'
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                        : ord.status === 'Shipped'
+                                        ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                        : ord.status === 'Cancelled'
+                                        ? 'bg-red-50 text-red-700 border-red-200'
+                                        : 'bg-amber-50 text-amber-800 border-amber-200'
                                     }`}
                                   >
                                     {ord.status}
@@ -924,12 +995,12 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
 
                               {renderRatingPrompt(ord)}
 
-                              <div className="flex items-center justify-between pt-2 border-t border-stone-100 bg-[#FAF9F6] -mx-4 -mb-4 p-3 rounded-b-xl text-[11px]">
-                                <span className="text-stone-600 font-medium flex items-center gap-1">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-stone-100 bg-[#FAF9F6] -mx-4 -mb-4 p-3 rounded-b-2xl text-[11px]">
+                                <span className="text-stone-600 font-medium flex items-center gap-1 min-w-0 break-all">
                                   <Truck className="w-3.5 h-3.5 text-[#C5A059]" /> Tracking ID: {ord.trackingNumber}
                                 </span>
 
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center justify-end gap-2 shrink-0">
                                   <button
                                     onClick={() => setOrderToDelete(ord)}
                                     className="text-red-600 hover:text-red-800 hover:bg-red-50 px-2 py-1.5 rounded font-bold flex items-center gap-1 cursor-pointer transition-colors"
@@ -938,9 +1009,9 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                                   </button>
                                   <button
                                     onClick={() => setTrackingOrder(ord)}
-                                    className="bg-stone-900 hover:bg-black text-white px-3 py-1.5 rounded font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
+                                    className="bg-stone-900 hover:bg-black text-white px-3.5 py-2 rounded-lg font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-xs whitespace-nowrap"
                                   >
-                                    Track Shipment <ChevronRight className="w-3 h-3 text-[#C5A059]" />
+                                    Track shipment <ChevronRight className="w-3 h-3 text-[#C5A059]" />
                                   </button>
                                 </div>
                               </div>
@@ -954,14 +1025,14 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
               )}
 
               {dashboardTab === 'address' && (
-                <form onSubmit={handleSaveAddress} className="space-y-4 max-w-md">
+                <form onSubmit={handleSaveAddress} className="space-y-4 max-w-lg bg-white border border-stone-200 rounded-2xl p-4 sm:p-6">
                   {completeProfileForCheckout && (
                     <div className="p-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg text-xs font-semibold">
                       Complete your shipping details below to continue to secure checkout.
                     </div>
                   )}
                   <div className="space-y-1">
-                    <h3 className="font-bold text-stone-900 text-sm uppercase">Default Shipping Address</h3>
+                    <h3 className="font-black text-stone-900 text-base">Shipping address</h3>
                     <p className="text-stone-500 text-[11px]">Used for automatic express checkout.</p>
                   </div>
 
@@ -979,7 +1050,7 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                       required
                       value={editAddress}
                       onChange={(e) => setEditAddress(e.target.value)}
-                      className="w-full p-2.5 border border-stone-300 rounded bg-white text-stone-900"
+                      className="w-full px-3 py-2.5 text-sm border border-stone-300 rounded-xl bg-white text-stone-900 focus:outline-none focus:border-[#C5A059] focus:ring-2 focus:ring-[#C5A059]/20 transition"
                     />
                   </div>
 
@@ -991,7 +1062,7 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                         required
                         value={editPostalCode}
                         onChange={(e) => setEditPostalCode(e.target.value)}
-                        className="w-full p-2.5 border border-stone-300 rounded bg-white text-stone-900"
+                        className="w-full px-3 py-2.5 text-sm border border-stone-300 rounded-xl bg-white text-stone-900 focus:outline-none focus:border-[#C5A059] focus:ring-2 focus:ring-[#C5A059]/20 transition"
                       />
                     </div>
                     <div>
@@ -1001,11 +1072,11 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                         required
                         value={editCity}
                         onChange={(e) => setEditCity(e.target.value)}
-                        className="w-full p-2.5 border border-stone-300 rounded bg-white text-stone-900"
+                        className="w-full px-3 py-2.5 text-sm border border-stone-300 rounded-xl bg-white text-stone-900 focus:outline-none focus:border-[#C5A059] focus:ring-2 focus:ring-[#C5A059]/20 transition"
                       />
                     </div>
 
-                    <div>
+                    <div className="col-span-2">
                       <label className="block text-stone-700 font-bold mb-1">Country</label>
                         <select
                           value={editCountry}
@@ -1013,7 +1084,7 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                             setEditCountry(e.target.value);
                             setEditPhoneCode(getDialCode(e.target.value));
                           }}
-                          className="w-full p-2.5 border border-stone-300 rounded bg-white text-stone-900"
+                          className="w-full px-3 py-2.5 text-sm border border-stone-300 rounded-xl bg-white text-stone-900 focus:outline-none focus:border-[#C5A059] focus:ring-2 focus:ring-[#C5A059]/20 transition"
                         >
                           {COUNTRY_OPTIONS.map((option) => (
                             <option key={option.code} value={option.name}>{option.name}</option>
@@ -1028,7 +1099,7 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                       <select
                         value={editPhoneCode}
                         onChange={(e) => setEditPhoneCode(e.target.value)}
-                        className="p-2.5 border border-stone-300 rounded bg-white text-stone-900"
+                        className="px-3 py-2.5 text-sm border border-stone-300 rounded-xl bg-white text-stone-900 focus:outline-none focus:border-[#C5A059] focus:ring-2 focus:ring-[#C5A059]/20 transition"
                         aria-label="Country dialing code"
                       >
                         {COUNTRY_OPTIONS.map((option) => (
@@ -1040,28 +1111,28 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                         required
                         value={editPhoneNumber}
                         onChange={(e) => setEditPhoneNumber(e.target.value)}
-                        className="w-full p-2.5 border border-stone-300 rounded bg-white text-stone-900"
+                        className="w-full px-3 py-2.5 text-sm border border-stone-300 rounded-xl bg-white text-stone-900 focus:outline-none focus:border-[#C5A059] focus:ring-2 focus:ring-[#C5A059]/20 transition"
                       />
                     </div>
                   </div>
 
                   <button
                     type="submit"
-                    className="bg-stone-900 hover:bg-black text-white font-bold uppercase px-6 py-2.5 rounded shadow cursor-pointer transition-colors"
+                    className="w-full sm:w-auto bg-stone-900 hover:bg-black text-white font-bold px-6 py-3 rounded-xl shadow-sm cursor-pointer transition-colors text-sm"
                   >
-                    Save Address Changes
+                    Save address
                   </button>
                 </form>
               )}
 
               {dashboardTab === 'profile' && (
-                <div className="space-y-4 max-w-md">
+                <div className="space-y-4 max-w-lg">
                   <div className="space-y-1">
-                    <h3 className="font-bold text-stone-900 text-sm uppercase">Personal Account Info</h3>
+                    <h3 className="font-black text-stone-900 text-base">Profile</h3>
                     <p className="text-stone-500 text-[11px]">Manage your membership preferences.</p>
                   </div>
 
-                  <div className="space-y-3 bg-white p-4 border border-stone-200 rounded-xl">
+                  <div className="space-y-3 bg-white p-4 sm:p-6 border border-stone-200 rounded-2xl">
                     <div className="flex items-center gap-4 border-b border-stone-100 pb-4">
                       {currentUser.profilePicture ? (
                         <img
@@ -1075,7 +1146,7 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                         </div>
                       )}
                       <div>
-                        <label className="inline-flex items-center gap-2 bg-stone-900 hover:bg-black text-white font-bold uppercase px-3 py-2 rounded text-[11px] cursor-pointer transition-colors">
+                        <label className="inline-flex items-center gap-2 bg-stone-900 hover:bg-black text-white font-bold px-3.5 py-2 rounded-lg text-xs cursor-pointer transition-colors">
                           <Camera className="w-4 h-4" />
                           Upload Profile Picture
                           <input
@@ -1128,18 +1199,18 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                         {profilePictureError && <p className="text-[10px] text-red-600 font-semibold mt-1">{profilePictureError}</p>}
                       </div>
                     </div>
-                    <div className="flex items-center justify-between border-b border-stone-100 pb-2">
-                      <span className="text-stone-500 font-semibold">Full Name</span>
+                    <div className="flex items-center justify-between gap-4 border-b border-stone-100 pb-2">
+                      <span className="text-stone-500 font-semibold shrink-0">Full Name</span>
                       <span className="font-bold text-stone-900">{currentUser.name}</span>
                     </div>
 
-                    <div className="flex items-center justify-between border-b border-stone-100 pb-2">
-                      <span className="text-stone-500 font-semibold">Email Address</span>
-                      <span className="font-bold text-stone-900">{currentUser.email}</span>
+                    <div className="flex items-center justify-between gap-4 border-b border-stone-100 pb-2">
+                      <span className="text-stone-500 font-semibold shrink-0">Email Address</span>
+                      <span className="font-bold text-stone-900 min-w-0 break-all text-right">{currentUser.email}</span>
                     </div>
 
-                    <div className="flex items-center justify-between border-b border-stone-100 pb-2">
-                      <span className="text-stone-500 font-semibold">Phone</span>
+                    <div className="flex items-center justify-between gap-4 border-b border-stone-100 pb-2">
+                      <span className="text-stone-500 font-semibold shrink-0">Phone</span>
                       <span className="font-bold text-stone-900">{currentUser.phone || editPhone}</span>
                     </div>
 
@@ -1199,18 +1270,19 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
               </div>
             )}
 
-            {/* Logout Footer */}
-            <div className="p-4 bg-[#F4F3EF] border-t border-stone-200 flex items-center justify-between text-xs flex-shrink-0">
-              <span className="text-stone-500 text-[11px]">Logged in as {currentUser.email}</span>
+            {/* Sign-out Footer (phones) */}
+            <div className="md:hidden px-4 py-3 bg-[#F4F3EF] border-t border-stone-200 flex items-center justify-between gap-3 text-xs flex-shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              <span className="text-stone-500 text-[11px] truncate">Signed in as {currentUser.email}</span>
               <button
                 onClick={() => {
                   onLogout();
                   onClose();
                 }}
-                className="text-red-600 hover:text-red-800 font-bold uppercase flex items-center gap-1.5 cursor-pointer bg-red-50 hover:bg-red-100 px-4 py-2 rounded border border-red-200 transition-colors"
+                className="shrink-0 text-red-600 hover:text-red-800 font-bold flex items-center gap-1.5 cursor-pointer bg-white hover:bg-red-50 px-3 py-2 rounded-lg border border-red-200 transition-colors"
               >
-                <LogOut className="w-4 h-4" /> Sign Out
+                <LogOut className="w-4 h-4" /> Sign out
               </button>
+            </div>
             </div>
           </div>
         ) : (
@@ -1429,7 +1501,7 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                     <select
                       value={registrationPhoneCode}
                       onChange={(event) => setRegistrationPhoneCode(event.target.value)}
-                      className="p-2.5 border border-stone-300 rounded bg-white text-stone-900"
+                      className="px-3 py-2.5 text-sm border border-stone-300 rounded-lg bg-white text-stone-900 focus:outline-none focus:border-[#C5A059] focus:ring-2 focus:ring-[#C5A059]/20 transition"
                       aria-label="Country dialing code"
                     >
                       {COUNTRY_OPTIONS.map((option) => (
@@ -1441,7 +1513,7 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                       placeholder="6 12 34 56 78"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      className="w-full p-2.5 border border-stone-300 rounded bg-white text-stone-900"
+                      className="w-full px-3 py-2.5 text-sm border border-stone-300 rounded-lg bg-white text-stone-900 focus:outline-none focus:border-[#C5A059] focus:ring-2 focus:ring-[#C5A059]/20 transition"
                     />
                   </div>
                 </div>
@@ -1454,7 +1526,7 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                       setRegistrationCountry(event.target.value);
                       setRegistrationPhoneCode(getDialCode(event.target.value));
                     }}
-                    className="w-full p-2.5 border border-stone-300 rounded bg-white text-stone-900"
+                    className="w-full px-3 py-2.5 text-sm border border-stone-300 rounded-lg bg-white text-stone-900 focus:outline-none focus:border-[#C5A059] focus:ring-2 focus:ring-[#C5A059]/20 transition"
                   >
                     {COUNTRY_OPTIONS.map((option) => (
                       <option key={option.code} value={option.name}>{option.name}</option>
