@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Product, CurrencyCode } from '../types';
 import { CURRENCIES } from '../data/products';
-import { Heart, Plus, Star, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
+import { formatPrice as formatPriceIn } from '../lib/price';
+import { Heart, Plus, Star, SlidersHorizontal, ArrowUpDown, ArrowUpRight } from 'lucide-react';
 
 interface ShopViewProps {
   products: Product[];
@@ -48,13 +49,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
     return 0; // featured
   });
 
-  const formatPrice = (priceInEur: number) => {
-    const converted = priceInEur * currency.rate;
-    if (currency.code === 'NLE') {
-      return `${currency.symbol}${converted.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
-    }
-    return `${currency.symbol}${converted.toFixed(2)}`;
-  };
+  const formatPrice = (priceInEur: number) => formatPriceIn(priceInEur, currency);
 
   return (
     <div className="py-12 bg-[#FAF9F6] text-stone-900">
@@ -111,7 +106,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
         </div>
 
         {/* Product Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
           {sortedProducts.length === 0 ? (
             <div className="col-span-full flex min-h-64 items-center justify-center rounded-xl border border-stone-200 bg-[#F4F3EF] px-6 py-12 text-center">
               <p className="max-w-md text-sm font-semibold text-stone-600">
@@ -129,7 +124,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
                 {/* Image Container */}
                 <div
                   onClick={() => onProductClick(product)}
-                  className="h-64 sm:h-72 w-full bg-[#EFECE6] relative overflow-hidden cursor-pointer"
+                  className="h-48 sm:h-72 w-full bg-[#EFECE6] relative overflow-hidden cursor-pointer"
                 >
                   <img
                     src={product.image}
@@ -179,7 +174,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
                     </span>
                     <h3
                       onClick={() => onProductClick(product)}
-                      className="text-sm font-bold text-stone-900 hover:text-[#C5A059] cursor-pointer transition-colors line-clamp-1 mt-0.5"
+                      className="text-sm font-bold text-stone-900 hover:text-[#C5A059] cursor-pointer transition-colors line-clamp-2 min-h-10 sm:min-h-0 sm:line-clamp-1 mt-0.5"
                     >
                       {product.name}
                     </h3>
@@ -208,13 +203,25 @@ export const ShopView: React.FC<ShopViewProps> = ({
                       </span>
                     </div>
 
-                    <button
-                      onClick={() => onQuickAdd(product)}
-                      className="w-8 h-8 rounded-full bg-stone-900 hover:bg-[#C5A059] text-white flex items-center justify-center transition-colors shadow-sm cursor-pointer"
-                      title="Quick Add to Cart"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
+                    {product.inStock ? (
+                      <button
+                        onClick={() => onQuickAdd(product)}
+                        className="w-8 h-8 shrink-0 rounded-full bg-stone-900 hover:bg-[#C5A059] text-white flex items-center justify-center transition-colors shadow-sm cursor-pointer"
+                        title="Quick Add to Cart"
+                        aria-label={`Add ${product.name} to cart`}
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => onProductClick(product)}
+                        className="w-8 h-8 shrink-0 rounded-full border border-stone-300 text-stone-700 hover:border-[#C5A059] hover:text-[#C5A059] flex items-center justify-center transition-colors cursor-pointer"
+                        title="Request on demand"
+                        aria-label={`Request ${product.name} on demand`}
+                      >
+                        <ArrowUpRight className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

@@ -54,7 +54,7 @@ const WhatsAppIcon = ({ className = 'w-4 h-4' }: { className?: string }) => (
   </svg>
 );
 
-export const AuthModal: React.FC<AuthModalProps> = ({
+const AuthModalContent: React.FC<AuthModalProps> = ({
   isOpen,
   initialAuthMode = 'login',
   initialDashboardTab = 'orders',
@@ -71,7 +71,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onRateOrder,
 }) => {
   const isLocalhost = window.location.hostname === 'localhost';
-  if (!isOpen) return null;
 
   // Auth form states
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
@@ -1503,3 +1502,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     </div>
   );
 };
+
+// Hooks live in AuthModalContent so they always run in the same order.
+export const AuthModal: React.FC<AuthModalProps> = (props) => (props.isOpen ? <AuthModalContent {...props} /> : null);

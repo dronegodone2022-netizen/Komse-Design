@@ -108,15 +108,15 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ onOpenContact }) => {
               >
                 <button
                   onClick={() => toggleExpand(item.id)}
-                  className="w-full p-5 text-left flex items-center justify-between gap-4 cursor-pointer focus:outline-none"
+                  className="w-full p-5 text-left flex items-center justify-between gap-4 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C5A059] focus-visible:ring-inset"
                 >
                   <span className="font-bold text-stone-900 text-sm sm:text-base flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-[#C5A059] shrink-0" />
                     {item.question}
                   </span>
                   <div
-                    className={`w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center shrink-0 transition-transform duration-300 ${
-                      isOpen ? 'rotate-180 bg-[#121212] text-white' : 'text-stone-600'
+                    className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-transform duration-300 ${
+                      isOpen ? 'rotate-180 bg-[#121212] text-white' : 'bg-stone-100 text-stone-600'
                     }`}
                   >
                     <ChevronDown className="w-4 h-4" />

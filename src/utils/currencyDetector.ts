@@ -18,7 +18,7 @@ export function getDialCode(country: string): string {
 /**
  * Detects the user's default currency based on browser location settings
  * (Intl timeZone, navigator.language, and navigator.languages).
- * Automatically sets the default currency to 'SLL', 'USD', or 'EUR'.
+ * Automatically sets the default currency to 'NLE', 'USD', or 'EUR'.
  */
 export function detectDefaultCurrency(): CurrencyCode {
   try {
@@ -37,7 +37,7 @@ export function detectDefaultCurrency(): CurrencyCode {
       )
     );
 
-    // --- CHECK 1: Sierra Leone (SLL) ---
+    // --- CHECK 1: Sierra Leone (NLE) ---
     // Check if timezone is Freetown / Sierra Leone
     const isFreetownTimeZone =
       timeZone.includes('freetown') ||
@@ -46,11 +46,11 @@ export function detectDefaultCurrency(): CurrencyCode {
 
     // Check if any browser language specifies SL region (e.g. 'en-sl', 'kri-sl')
     const isSierraLeoneLocale = languages.some(
-      (lang) => lang.endsWith('-sl') || lang.includes('-sl-') || lang === 'sl' || lang === 'kri'
+      (lang) => lang.endsWith('-sl') || lang.includes('-sl-') || lang === 'kri'
     );
 
     if (isFreetownTimeZone || isSierraLeoneLocale) {
-      return 'SLL';
+      return 'NLE';
     }
 
     // --- CHECK 2: Eurozone / Europe (EUR) ---

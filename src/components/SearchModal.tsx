@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Product, CurrencyCode } from '../types';
 import { CURRENCIES } from '../data/products';
+import { formatPrice } from '../lib/price';
 import { X, Search, Star } from 'lucide-react';
 
 interface SearchModalProps {
@@ -11,14 +12,13 @@ interface SearchModalProps {
   onSelectProduct: (product: Product) => void;
 }
 
-export const SearchModal: React.FC<SearchModalProps> = ({
+const SearchModalContent: React.FC<SearchModalProps> = ({
   isOpen,
   onClose,
   products,
   currentCurrency,
   onSelectProduct,
 }) => {
-  if (!isOpen) return null;
 
   const [query, setQuery] = useState('');
   const currency = CURRENCIES[currentCurrency] || CURRENCIES.EUR;
@@ -83,7 +83,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                   <h4 className="text-xs font-bold text-stone-900">{product.name}</h4>
                   <div className="flex items-center gap-2 mt-0.5 text-[11px] text-stone-500">
                     <span className="font-bold text-stone-900">
-                      {product.inStock ? `${currency.symbol}${(product.price * currency.rate).toFixed(2)}` : 'Unavailable'}
+                      {product.inStock ? formatPrice(product.price, currency) : 'Unavailable'}
                     </span>
                     <span>•</span>
                     <span className="flex items-center gap-1">
@@ -99,3 +99,6 @@ export const SearchModal: React.FC<SearchModalProps> = ({
     </div>
   );
 };
+
+// Hooks live in SearchModalContent so they always run in the same order.
+export const SearchModal: React.FC<SearchModalProps> = (props) => (props.isOpen ? <SearchModalContent {...props} /> : null);

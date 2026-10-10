@@ -90,7 +90,7 @@ export const Footer: React.FC<FooterProps> = ({
             <img
               src={komseLogoImg}
               alt="KOMSE Logo"
-              className="h-16 w-auto"
+              className="h-16 w-auto mix-blend-multiply"
             />
           </div>
 

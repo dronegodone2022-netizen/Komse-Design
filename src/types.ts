@@ -1,4 +1,4 @@
-export type CurrencyCode = 'EUR' | 'USD' | 'GBP' | 'NLE' | 'SLL';
+export type CurrencyCode = 'EUR' | 'USD' | 'GBP' | 'NLE';
 
 export interface Currency {
   code: CurrencyCode;

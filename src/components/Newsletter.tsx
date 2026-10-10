@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Instagram, Facebook, Youtube, Check } from 'lucide-react';
+import { Instagram, Facebook, Youtube, Check, Users } from 'lucide-react';
 
 export const Newsletter: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -81,7 +81,7 @@ export const Newsletter: React.FC = () => {
               className="p-2.5 bg-stone-900 hover:bg-[#C5A059] hover:text-stone-950 rounded-full transition-all duration-200"
               title="Facebook Community - KOMSE Design"
             >
-              <Facebook className="w-4 h-4" />
+              <Users className="w-4 h-4" />
             </a>
             <a
               href="https://www.tiktok.com/@komse.kd.design?_r=1&_t=ZN-98jzmRhWTmV"

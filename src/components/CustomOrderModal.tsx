@@ -9,12 +9,11 @@ interface CustomOrderModalProps {
   onAddToCart: (customDetails: CustomDesignDetails, price: number) => void;
 }
 
-export const CustomOrderModal: React.FC<CustomOrderModalProps> = ({
+const CustomOrderModalContent: React.FC<CustomOrderModalProps> = ({
   isOpen,
   onClose,
   onAddToCart,
 }) => {
-  if (!isOpen) return null;
 
   const [garmentType, setGarmentType] = useState<'T-Shirt' | 'Hoodie' | 'Jacket' | 'Cap'>('T-Shirt');
   const [selectedColor, setSelectedColor] = useState({ name: 'Onyx Black', hex: '#121212' });
@@ -438,3 +437,6 @@ export const CustomOrderModal: React.FC<CustomOrderModalProps> = ({
     </div>
   );
 };
+
+// Hooks live in CustomOrderModalContent so they always run in the same order.
+export const CustomOrderModal: React.FC<CustomOrderModalProps> = (props) => (props.isOpen ? <CustomOrderModalContent {...props} /> : null);

@@ -169,7 +169,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
                   3. Pricing, Taxes & Currencies
                 </h3>
                 <p>
-                  All displayed prices include French Value Added Tax (VAT) where applicable. Currency conversions (USD, GBP, SLL) are calculated using real-time foreign exchange benchmark rates.
+                  All displayed prices include French Value Added Tax (VAT) where applicable. Currency conversions (USD, GBP, NLE) are calculated using real-time foreign exchange benchmark rates.
                 </p>
               </section>
 

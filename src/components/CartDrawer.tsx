@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CartItem, CurrencyCode } from '../types';
 import { CURRENCIES } from '../data/products';
+import { formatPrice as formatPriceIn } from '../lib/price';
 import { X, Trash2, ShoppingBag, ArrowRight, Truck, Tag, Sparkles } from 'lucide-react';
 
 interface CartDrawerProps {
@@ -13,7 +14,7 @@ interface CartDrawerProps {
   onOpenCheckout: () => void;
 }
 
-export const CartDrawer: React.FC<CartDrawerProps> = ({
+const CartDrawerContent: React.FC<CartDrawerProps> = ({
   isOpen,
   onClose,
   cartItems,
@@ -22,7 +23,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onRemoveItem,
   onOpenCheckout,
 }) => {
-  if (!isOpen) return null;
 
   const currency = CURRENCIES[currentCurrency] || CURRENCIES.EUR;
   const [promoCode, setPromoCode] = useState('');
@@ -44,7 +44,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   const totalEur = subtotalEur - discountEur + shippingEur;
 
   const formatPrice = (amountEur: number) => {
-    return `${currency.symbol}${(amountEur * currency.rate).toFixed(2)}`;
+    return formatPriceIn(amountEur, currency);
   };
 
   const handleApplyPromo = (e: React.FormEvent) => {
@@ -263,3 +263,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     </div>
   );
 };
+
+// Hooks live in CartDrawerContent so they always run in the same order.
+export const CartDrawer: React.FC<CartDrawerProps> = (props) => (props.isOpen ? <CartDrawerContent {...props} /> : null);

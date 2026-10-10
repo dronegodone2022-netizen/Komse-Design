@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Product, CurrencyCode, ReproductionRequest } from '../types';
 import { CURRENCIES } from '../data/products';
+import { formatPrice } from '../lib/price';
 import { X, Star, Heart, ShoppingBag, Truck, RotateCcw, Check, Sparkles, CheckCircle2, RefreshCcw } from 'lucide-react';
 
 interface ProductDetailModalProps {
@@ -14,7 +15,7 @@ interface ProductDetailModalProps {
   onSubmitReproductionRequest?: (data: Omit<ReproductionRequest, 'id' | 'requestedAt' | 'status'>) => void;
 }
 
-export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
+const ProductDetailModalContent: React.FC<ProductDetailModalProps> = ({
   product,
   isOpen,
   onClose,
@@ -24,7 +25,6 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onAddToCart,
   onSubmitReproductionRequest,
 }) => {
-  if (!isOpen || !product) return null;
 
   const [activeImage, setActiveImage] = useState(product.image);
   const [selectedSize, setSelectedSize] = useState(product.sizes[0] || 'M');
@@ -39,7 +39,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const [demandSubmitted, setDemandSubmitted] = useState(false);
 
   const currency = CURRENCIES[currentCurrency] || CURRENCIES.EUR;
-  const formattedPrice = (product.price * currency.rate).toFixed(2);
+  const formattedPrice = formatPrice(product.price, currency);
 
   const handleAddToCart = () => {
     onAddToCart(product, selectedSize, selectedColor, quantity);
@@ -110,7 +110,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               {/* Price & Rating */}
               <div className="flex items-center justify-between mt-3">
                 <div className="text-2xl font-black text-stone-900">
-                  {product.inStock ? `${currency.symbol}${formattedPrice}` : 'Currently unavailable'}
+                  {product.inStock ? formattedPrice : 'Currently unavailable'}
                 </div>
 
                 <div className="flex items-center gap-1.5">
@@ -337,7 +337,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                     className="flex-1 bg-stone-900 hover:bg-black text-white text-xs font-bold uppercase py-4 rounded shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
                     <ShoppingBag className="w-4 h-4" />
-                    Add to Cart ({currency.symbol}{(product.price * quantity * currency.rate).toFixed(2)})
+                    Add to Cart ({formatPrice(product.price * quantity, currency)})
                   </button>
 
                   <button
@@ -389,7 +389,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             <div className="grid grid-cols-2 gap-2 text-[11px] text-stone-500 pt-2">
               <div className="flex items-center gap-1.5">
                 <Truck className="w-3.5 h-3.5 text-[#C5A059]" />
-                <span>Free delivery over €200</span>
+                <span>Free delivery over €100</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <RotateCcw className="w-3.5 h-3.5 text-[#C5A059]" />
@@ -445,3 +445,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
     </div>
   );
 };
+
+// Hooks live in ProductDetailModalContent so they always run in the same order; keying by product resets its state.
+export const ProductDetailModal: React.FC<ProductDetailModalProps> = (props) =>
+  props.isOpen && props.product ? <ProductDetailModalContent key={props.product.id} {...props} /> : null;

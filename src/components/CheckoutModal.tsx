@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { CartItem, CurrencyCode, UserOrder, UserProfile } from '../types';
 import { CURRENCIES } from '../data/products';
+import { formatPrice as formatPriceIn } from '../lib/price';
 import { apiUrl, supabaseFunctionUrl } from '../lib/api';
 import { COUNTRY_OPTIONS, detectDefaultCountry, getDialCode } from '../utils/currencyDetector';
 import { supabase } from '../lib/supabase';
@@ -54,7 +55,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const totalEur = subtotalEur + shippingEur;
 
   const formatPrice = (amountEur: number) => {
-    return `${currency.symbol}${(amountEur * currency.rate).toFixed(2)}`;
+    return formatPriceIn(amountEur, currency);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
