@@ -177,6 +177,10 @@ const getCatalog = async (client: ReturnType<typeof getSupabaseAdmin>) => {
   return catalog;
 };
 
+// Order references are interpolated into PostgREST filters, so only allow ID-safe characters.
+const isOrderReference = (value: unknown): value is string =>
+  typeof value === 'string' && /^[A-Za-z0-9_-]{1,255}$/.test(value);
+
 const requireAdmin = async (req: express.Request, res: express.Response) => {
   const client = getSupabaseAdmin();
   const authorization = req.headers.authorization || '';
@@ -228,6 +232,7 @@ app.patch('/api/admin/orders/:id', async (req, res) => {
   const client = await requireAdmin(req, res);
   if (!client) return;
   const orderReference = req.params.id;
+  if (!isOrderReference(orderReference)) return res.status(400).json({ error: 'A valid order reference is required.' });
   const updates = {
     status: req.body?.status,
     tracking_number: req.body?.trackingNumber,
@@ -237,13 +242,13 @@ app.patch('/api/admin/orders/:id', async (req, res) => {
   }
   const { data: order, error: lookupError } = await client
     .from('orders')
-    .select('stripe_session_id, order_id, customer_name, customer_email, items_summary, total_amount_eur')
+    .select('id, order_id, customer_name, customer_email, items_summary, total_amount_eur')
     .or(`order_id.eq.${orderReference},stripe_session_id.eq.${orderReference}`)
     .maybeSingle();
   if (lookupError) return res.status(502).json({ error: lookupError.message });
   if (!order) return res.status(404).json({ error: 'Order was not found.' });
 
-  const { error } = await client.from('orders').update(updates).eq('stripe_session_id', order.stripe_session_id);
+  const { error } = await client.from('orders').update(updates).eq('id', order.id);
   if (error) return res.status(502).json({ error: error.message });
 
   let emailSent = false;
@@ -273,7 +278,12 @@ app.patch('/api/admin/orders/:id', async (req, res) => {
 app.delete('/api/admin/orders/:id', async (req, res) => {
   const client = await requireAdmin(req, res);
   if (!client) return;
-  const { error } = await client.from('orders').delete().eq('stripe_session_id', req.params.id);
+  const orderReference = req.params.id;
+  if (!isOrderReference(orderReference)) return res.status(400).json({ error: 'A valid order reference is required.' });
+  const { error } = await client
+    .from('orders')
+    .delete()
+    .or(`order_id.eq.${orderReference},stripe_session_id.eq.${orderReference}`);
   if (error) return res.status(502).json({ error: error.message });
   return res.json({ deleted: true });
 });

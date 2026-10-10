@@ -1,4 +1,4 @@
-import Stripe from 'npm:stripe@22.6.0';
+import Stripe from 'npm:stripe@22.6.1';
 import { createClient } from 'npm:@supabase/supabase-js@2.115.0';
 
 const corsHeaders = {
@@ -70,7 +70,8 @@ Deno.serve(async (request) => {
   const user = await requireUser(request);
   if (!user) return json({ error: 'A valid customer session is required.' }, 401);
   const { admin, stripe } = getClients();
-  const body = await request.json();
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'A valid JSON body is required.' }, 400); }
 
   try {
     if (body.action === 'verify') {

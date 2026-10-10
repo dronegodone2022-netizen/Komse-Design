@@ -28,18 +28,20 @@ Deno.serve(async (request) => {
   let body: { orderId?: string; status?: string; trackingNumber?: string };
   try { body = await request.json(); } catch { return json({ error: 'A valid JSON body is required.' }, 400); }
   const orderReference = body.orderId || '';
+  // The reference is interpolated into a PostgREST filter, so only allow ID-safe characters.
+  if (!/^[A-Za-z0-9_-]{1,255}$/.test(orderReference)) return json({ error: 'A valid order reference is required.' }, 400);
   if (!['Processing', 'Shipped', 'Delivered', 'Cancelled'].includes(body.status || '')) return json({ error: 'A valid order status is required.' }, 400);
 
   const { data: order, error: lookupError } = await admin
     .from('orders')
-    .select('stripe_session_id, order_id, customer_name, customer_email, items_summary, total_amount_eur')
+    .select('id, order_id, customer_name, customer_email, items_summary, total_amount_eur')
     .or(`order_id.eq.${orderReference},stripe_session_id.eq.${orderReference}`)
     .maybeSingle();
   if (lookupError) return json({ error: lookupError.message }, 502);
   if (!order) return json({ error: 'Order was not found.' }, 404);
 
   const updates = { status: body.status, tracking_number: body.trackingNumber || 'Pending assignment' };
-  const { error: updateError } = await admin.from('orders').update(updates).eq('stripe_session_id', order.stripe_session_id);
+  const { error: updateError } = await admin.from('orders').update(updates).eq('id', order.id);
   if (updateError) return json({ error: updateError.message }, 502);
 
   let emailSent = false;

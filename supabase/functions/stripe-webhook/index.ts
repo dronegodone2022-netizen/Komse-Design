@@ -1,4 +1,4 @@
-import Stripe from 'npm:stripe@22.6.0';
+import Stripe from 'npm:stripe@22.6.1';
 import { createClient } from 'npm:@supabase/supabase-js@2.115.0';
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -84,7 +84,7 @@ const sendPaidOrderEmail = async (order: ReturnType<typeof getOrderFromSession>)
     });
     if (!response.ok) {
       const details = await response.text();
-      throw new Error(`Resend rejected ${to}: ${response.status} ${details}`);
+      throw new Error(`Resend rejected ${email.to}: ${response.status} ${details}`);
     }
   }
 };

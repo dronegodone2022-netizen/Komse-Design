@@ -115,10 +115,9 @@ revoke all on function public.check_registration_availability(text, text) from p
 grant execute on function public.check_registration_availability(text, text) to anon, authenticated;
 
 -- Keep customer order access limited to the authenticated owner.
+-- Orders are only created server-side (Stripe webhook, service role), so customers
+-- must not be able to insert their own rows with arbitrary status or totals.
 drop policy if exists "Users can create their own orders" on public.orders;
-create policy "Users can create their own orders"
-on public.orders for insert
-with check (auth.uid() = user_id);
 
 drop policy if exists "Users can delete their own orders" on public.orders;
 create policy "Users can delete their own orders"
@@ -233,3 +232,47 @@ drop policy if exists "Users can read their avatar" on storage.objects;
 create policy "Users can read their avatar"
 on storage.objects for select
 using (bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]);
+
+-- Stream order changes to customers (used by the realtime subscription in App.tsx).
+-- Full replica identity lets delete events include order_id.
+alter table public.orders replica identity full;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'orders'
+  ) then
+    alter publication supabase_realtime add table public.orders;
+  end if;
+end $$;
+
+-- Customers may edit their own profile, but only admins (or the service role) may change role/status.
+-- Without this, "Users can update their own profile" lets a customer promote themselves to Admin.
+create or replace function public.protect_profile_privileges()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  -- Service role, SQL editor and the signup trigger run without an end-user session.
+  if auth.uid() is null or public.is_admin() then
+    return new;
+  end if;
+
+  if tg_op = 'INSERT' then
+    new.role := 'Customer';
+    new.status := 'Active';
+  else
+    new.role := old.role;
+    new.status := old.status;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists protect_profile_privileges on public.profiles;
+create trigger protect_profile_privileges
+  before insert or update on public.profiles
+  for each row execute procedure public.protect_profile_privileges();

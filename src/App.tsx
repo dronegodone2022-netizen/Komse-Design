@@ -490,6 +490,31 @@ export default function App() {
     };
 
     void loadUserRecords();
+
+    const ordersChannel = client
+      .channel(`customer-orders-${currentUser.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${currentUser.id}` },
+        (payload) => {
+          if (payload.eventType === 'DELETE') {
+            const deletedId = String((payload.old as Record<string, unknown>).order_id || '');
+            if (deletedId) setUserOrders((previous) => previous.filter((order) => order.id !== deletedId));
+            return;
+          }
+
+          const updatedOrder = orderFromRow(payload.new as Record<string, unknown>);
+          setUserOrders((previous) => [
+            updatedOrder,
+            ...previous.filter((order) => order.id !== updatedOrder.id),
+          ]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void client.removeChannel(ordersChannel);
+    };
   }, [currentUser]);
 
   const [userOrders, setUserOrders] = useState<UserOrder[]>(() => {
@@ -765,24 +790,36 @@ export default function App() {
 
   // Order CRUD Handlers for Admin Panel
   const handleUpdateOrderStatus = (orderId: string, status: UserOrder['status'], trackingNumber?: string) => {
-    if (supabase) {
-      void supabase.functions.invoke('admin-order-update', {
-        body: { orderId, status, trackingNumber },
-      }).then(async ({ error }) => {
-        if (!error) return;
-        await adminRequest(`/api/admin/orders/${encodeURIComponent(orderId)}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ status, trackingNumber }),
-        });
-      }).catch((error) => {
-        console.error('Order update failed:', error);
-        showToast(`Order could not be updated: ${error.message}`);
-      });
-    }
     setUserOrders((prev) =>
       prev.map((o) => (o.id === orderId ? { ...o, status, trackingNumber: trackingNumber ?? o.trackingNumber } : o))
     );
-    showToast(`Order ${orderId} updated to ${status}`);
+
+    if (supabase) {
+      void (async () => {
+        try {
+          let result: { emailSent?: boolean } | null = null;
+          const functionResponse = await supabase.functions.invoke('admin-order-update', {
+            body: { orderId, status, trackingNumber },
+          });
+          if (functionResponse.error) {
+            result = await adminRequest(`/api/admin/orders/${encodeURIComponent(orderId)}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ status, trackingNumber }),
+            });
+          } else {
+            result = functionResponse.data;
+          }
+          showToast(result?.emailSent === false
+            ? `Order ${orderId} updated, but the status email was not sent. Check RESEND_API_KEY and MAIL_FROM.`
+            : `Order ${orderId} updated to ${status}`);
+        } catch (error) {
+          console.error('Order update failed:', error);
+          showToast(`Order could not be updated: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      })();
+    } else {
+      showToast(`Order ${orderId} updated to ${status}`);
+    }
   };
 
   const handleDeleteOrder = async (orderId: string) => {
@@ -974,6 +1011,10 @@ export default function App() {
 
   // Cart Operations
   const handleAddToCart = (product: Product, size: string, color: string, quantity: number) => {
+    if (!product.inStock) {
+      showToast(`${product.name} is currently unavailable. Request it on demand from the product page.`);
+      return;
+    }
     if (!currentUser) {
       setAuthInitialMode('register');
       setAuthModalOpen(true);
