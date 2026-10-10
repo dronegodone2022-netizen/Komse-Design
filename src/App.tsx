@@ -469,16 +469,20 @@ export default function App() {
     if (!client || !currentUser) return;
 
     const loadUserRecords = async () => {
-      const [{ data: orders }, { data: requests }] = await Promise.all([
+      const [{ data: orders, error: ordersError }, { data: requests }] = await Promise.all([
         client.from('orders').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }),
         client.from('reproduction_requests').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }),
       ]);
 
-      if (orders?.length) {
+      if (!ordersError && orders) {
+        // The database is the source of truth for this customer's orders, so drop cached copies
+        // of their orders that no longer exist (for example, ones an admin deleted).
         const savedOrders = orders.map((row) => orderFromRow(row as Record<string, unknown>));
+        const ownsOrder = (order: UserOrder) =>
+          order.userId === currentUser.id || order.customerEmail?.toLowerCase() === currentUser.email.toLowerCase();
         setUserOrders((previous) => [
           ...savedOrders,
-          ...previous.filter((order) => !savedOrders.some((savedOrder) => savedOrder.id === order.id)),
+          ...previous.filter((order) => !ownsOrder(order) && !savedOrders.some((savedOrder) => savedOrder.id === order.id)),
         ]);
       }
       if (requests?.length) {
@@ -513,7 +517,14 @@ export default function App() {
       )
       .subscribe();
 
+    // Realtime cannot filter delete events, so resync when the customer returns to the tab.
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') void loadUserRecords();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       void client.removeChannel(ordersChannel);
     };
   }, [currentUser]);

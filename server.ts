@@ -31,7 +31,8 @@ const persistPaidCheckout = async (session: Stripe.Checkout.Session) => {
   if (!client) throw new Error('Supabase order persistence is not configured.');
   const order = getOrderFromSession(session);
   if (!order.user_id) throw new Error('Checkout session is missing its user ID.');
-  const { error } = await client.from('orders').upsert(order, { onConflict: 'stripe_session_id' });
+  // Insert once; retries must not reset status or tracking set by an admin.
+  const { error } = await client.from('orders').upsert(order, { onConflict: 'stripe_session_id', ignoreDuplicates: true });
   if (error) throw error;
 
   const { data: emailClaim, error: claimError } = await client

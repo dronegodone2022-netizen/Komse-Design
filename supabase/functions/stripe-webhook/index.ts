@@ -109,12 +109,29 @@ Deno.serve(async (request) => {
   const order = getOrderFromSession(session);
   if (!order.user_id) return json({ error: 'Checkout session is missing its user ID.' }, 500);
   const { items_data: _itemsData, shipping_address: _shippingAddress, ...orderForDatabase } = order;
-  const { error } = await admin.from('orders').upsert(orderForDatabase, { onConflict: 'stripe_session_id' });
+  // Insert once; retries must not reset status or tracking set by an admin.
+  const { error } = await admin.from('orders').upsert(orderForDatabase, { onConflict: 'stripe_session_id', ignoreDuplicates: true });
   if (error) return json({ error: 'Unable to persist paid checkout.' }, 500);
+
+  // Stripe retries and sends both completed/async events, so claim the email once per order.
+  const { data: emailClaim, error: claimError } = await admin
+    .from('orders')
+    .update({ email_sent_at: new Date().toISOString() })
+    .eq('stripe_session_id', order.stripe_session_id)
+    .is('email_sent_at', null)
+    .select('stripe_session_id')
+    .maybeSingle();
+  if (claimError) {
+    console.error('Payment email claim failed; order was recorded:', claimError);
+    return json({ received: true });
+  }
+  if (!emailClaim) return json({ received: true });
+
   try {
     await sendPaidOrderEmail(order);
   } catch (error) {
     console.error('Payment email delivery failed; order was recorded:', error);
+    await admin.from('orders').update({ email_sent_at: null }).eq('stripe_session_id', order.stripe_session_id);
   }
   return json({ received: true });
 });
