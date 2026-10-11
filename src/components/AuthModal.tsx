@@ -30,6 +30,8 @@ import {
   Star,
   Trash2,
 } from 'lucide-react';
+import { printInvoice } from '../lib/invoice';
+import komseLogoImg from '../assets/images/komse_official_logo.png';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -901,10 +903,10 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
 
                         <div className="flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t border-stone-200/80">
                           <button
-                            onClick={() => window.print()}
+                            onClick={() => printInvoice(trackingOrder, currentUser, komseLogoImg)}
                             className="bg-white hover:bg-stone-100 text-stone-900 border border-stone-300 font-bold px-3 py-1.5 rounded cursor-pointer flex items-center gap-1.5 text-xs transition-colors shadow-2xs"
                           >
-                            <Printer className="w-3.5 h-3.5 text-[#C5A059]" /> Print Shipping Invoice
+                            <Printer className="w-3.5 h-3.5 text-[#C5A059]" /> Print invoice
                           </button>
 
                           <div className="flex items-center gap-2">
@@ -1011,6 +1013,14 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                                 </span>
 
                                 <div className="flex items-center justify-end gap-2 shrink-0">
+                                  <button
+                                    onClick={() => printInvoice(ord, currentUser, komseLogoImg)}
+                                    title="Print invoice"
+                                    aria-label={`Print invoice for ${ord.id}`}
+                                    className="text-stone-700 hover:text-stone-950 hover:bg-stone-100 px-2 py-1.5 rounded font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                                  >
+                                    <Printer className="w-3.5 h-3.5 text-[#C5A059]" /> Invoice
+                                  </button>
                                   <button
                                     onClick={() => setOrderToDelete(ord)}
                                     className="text-red-600 hover:text-red-800 hover:bg-red-50 px-2 py-1.5 rounded font-bold flex items-center gap-1 cursor-pointer transition-colors"

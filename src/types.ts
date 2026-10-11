@@ -95,6 +95,8 @@ export interface UserOrder {
   date: string;
   itemsCount: number;
   totalAmountEur: number;
+  subtotalEur?: number;
+  shippingEur?: number;
   status: 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
   trackingNumber: string;
   itemsSummary: string;

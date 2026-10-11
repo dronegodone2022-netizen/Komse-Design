@@ -80,6 +80,8 @@ const orderFromRow = (row: Record<string, unknown>): UserOrder => ({
   date: typeof row.created_at === 'string' ? new Date(row.created_at).toLocaleDateString('en-US', { month: 'long', day: '2-digit', year: 'numeric' }) : '',
   itemsCount: typeof row.items_count === 'number' ? row.items_count : 0,
   totalAmountEur: Number(row.total_amount_eur || 0),
+  subtotalEur: row.subtotal_eur == null ? undefined : Number(row.subtotal_eur),
+  shippingEur: row.shipping_eur == null ? undefined : Number(row.shipping_eur),
   status: ['Processing', 'Shipped', 'Delivered', 'Cancelled'].includes(String(row.status)) ? row.status as UserOrder['status'] : 'Processing',
   trackingNumber: typeof row.tracking_number === 'string' ? row.tracking_number : 'Pending assignment',
   itemsSummary: typeof row.items_summary === 'string' ? row.items_summary : 'KOMSE DESIGN order',
