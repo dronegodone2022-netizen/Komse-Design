@@ -192,7 +192,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [orderSearch, setOrderSearch] = useState('');
   const [orderStatusFilter, setOrderStatusFilter] = useState<string>('All');
   const [isAddingOrder, setIsAddingOrder] = useState(false);
-  const [editingOrderTracking, setEditingOrderTracking] = useState<{ id: string; tracking: string } | null>(null);
+  // `status` holds a pending status change (e.g. Shipped) that is saved together with the tracking number.
+  const [editingOrderTracking, setEditingOrderTracking] = useState<{ id: string; tracking: string; status?: UserOrder['status'] } | null>(null);
 
   const [newOrderForm, setNewOrderForm] = useState({
     customerName: '',
@@ -1978,49 +1979,92 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                               </td>
                               <td data-label="Tracking #" className="p-3.5 font-mono text-[11px]">
                                 {editingOrderTracking?.id === order.id ? (
-                                  <div className="flex items-center gap-1">
-                                    <input
-                                      type="text"
-                                      value={editingOrderTracking.tracking}
-                                      onChange={(e) => setEditingOrderTracking({ id: order.id, tracking: e.target.value })}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                          handleOrderStatusChange(order.id, order.status, editingOrderTracking.tracking);
-                                          setEditingOrderTracking(null);
-                                        }
-                                        if (e.key === 'Escape') setEditingOrderTracking(null);
-                                      }}
-                                      autoFocus
-                                      placeholder="e.g. DHL-123456"
-                                      className="px-2 py-1 text-xs border border-stone-300 rounded font-mono w-32"
-                                    />
-                                    <button
-                                      title="Save tracking number"
-                                      aria-label="Save tracking number"
-                                      onClick={() => {
-                                        handleOrderStatusChange(order.id, order.status, editingOrderTracking.tracking);
-                                        setEditingOrderTracking(null);
-                                      }}
-                                      className="p-1 text-emerald-600 hover:text-emerald-800"
-                                    >
-                                      <CheckCircle2 className="w-4 h-4" />
-                                    </button>
-                                  </div>
+                                  <form
+                                    className="flex flex-col items-end lg:items-start gap-1.5"
+                                    onSubmit={(e) => {
+                                      e.preventDefault();
+                                      const tracking = editingOrderTracking.tracking.trim();
+                                      if (!tracking) return;
+                                      handleOrderStatusChange(order.id, editingOrderTracking.status || order.status, tracking);
+                                      setEditingOrderTracking(null);
+                                    }}
+                                  >
+                                    {editingOrderTracking.status && (
+                                      <span className="font-sans text-[10px] font-bold text-blue-700">
+                                        Add tracking to mark as {editingOrderTracking.status}
+                                      </span>
+                                    )}
+                                    <div className="flex items-center gap-1">
+                                      <input
+                                        type="text"
+                                        value={editingOrderTracking.tracking}
+                                        onChange={(e) => setEditingOrderTracking({ ...editingOrderTracking, tracking: e.target.value })}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Escape') setEditingOrderTracking(null);
+                                        }}
+                                        autoFocus
+                                        required
+                                        placeholder="e.g. DHL-123456789"
+                                        className="px-2.5 py-1.5 text-xs border border-[#C5A059] rounded-lg font-mono w-40 lg:w-32 focus:outline-none focus:ring-2 focus:ring-[#C5A059]/30"
+                                      />
+                                      <button
+                                        type="submit"
+                                        title="Save tracking number"
+                                        className="px-2.5 py-1.5 rounded-lg bg-stone-900 text-white font-sans text-[11px] font-bold hover:bg-black cursor-pointer"
+                                      >
+                                        Save
+                                      </button>
+                                    </div>
+                                    <div className="flex items-center gap-3 font-sans text-[10px]">
+                                      {editingOrderTracking.status && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            handleOrderStatusChange(order.id, editingOrderTracking.status!, order.trackingNumber);
+                                            setEditingOrderTracking(null);
+                                          }}
+                                          className="text-stone-500 hover:text-stone-900 underline cursor-pointer"
+                                        >
+                                          Mark {editingOrderTracking.status} without tracking
+                                        </button>
+                                      )}
+                                      <button type="button" onClick={() => setEditingOrderTracking(null)} className="text-stone-500 hover:text-stone-900 cursor-pointer">
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </form>
+                                ) : !order.trackingNumber || order.trackingNumber === 'Pending assignment' ? (
+                                  <button
+                                    onClick={() => setEditingOrderTracking({ id: order.id, tracking: '' })}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-dashed border-[#C5A059] text-[#A88238] font-sans font-bold hover:bg-[#C5A059]/10 cursor-pointer"
+                                  >
+                                    <Plus className="w-3 h-3" /> Add tracking
+                                  </button>
                                 ) : (
                                   <button
                                     onClick={() => setEditingOrderTracking({ id: order.id, tracking: order.trackingNumber })}
                                     className="hover:text-[#C5A059] flex items-center gap-1 cursor-pointer"
-                                    title="Click to edit tracking"
+                                    title="Edit tracking number"
                                   >
-                                    <span>{order.trackingNumber || 'Add Tracking'}</span>
+                                    <span>{order.trackingNumber}</span>
                                     <Edit2 className="w-3 h-3 text-stone-400" />
                                   </button>
                                 )}
                               </td>
                               <td data-label="Status" className="p-3.5">
                                 <select
-                                  value={order.status}
-                                  onChange={(e) => handleOrderStatusChange(order.id, e.target.value as UserOrder['status'], order.trackingNumber)}
+                                  value={editingOrderTracking?.id === order.id && editingOrderTracking.status ? editingOrderTracking.status : order.status}
+                                  onChange={(e) => {
+                                    const nextStatus = e.target.value as UserOrder['status'];
+                                    const hasTracking = Boolean(order.trackingNumber) && order.trackingNumber !== 'Pending assignment';
+                                    // Shipping without a tracking number: ask for it first so the customer gets it in one email.
+                                    if (nextStatus === 'Shipped' && !hasTracking) {
+                                      setEditingOrderTracking({ id: order.id, tracking: '', status: nextStatus });
+                                      return;
+                                    }
+                                    setEditingOrderTracking(null);
+                                    handleOrderStatusChange(order.id, nextStatus, order.trackingNumber);
+                                  }}
                                   className={`px-2 py-1 text-[11px] font-bold uppercase rounded border focus:outline-none ${
                                     order.status === 'Delivered'
                                       ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
