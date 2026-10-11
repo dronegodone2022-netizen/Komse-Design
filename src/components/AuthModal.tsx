@@ -655,7 +655,15 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                   );
                 })}
               </nav>
-              <div className="p-3 border-t border-stone-200">
+              <div className="p-3 border-t border-stone-200 space-y-1">
+                {currentUser.role === 'Admin' && (
+                  <a
+                    href={`${import.meta.env.BASE_URL}?path=/admin`}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-stone-900 bg-[#C5A059]/15 hover:bg-[#C5A059]/25 transition-colors"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-[#A88238]" /> Admin dashboard
+                  </a>
+                )}
                 <button
                   onClick={() => {
                     onLogout();
@@ -1274,7 +1282,13 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
 
             {/* Sign-out Footer (phones) */}
             <div className="md:hidden px-4 py-3 bg-[#F4F3EF] border-t border-stone-200 flex items-center justify-between gap-3 text-xs flex-shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-              <span className="text-stone-500 text-[11px] truncate">Signed in as {currentUser.email}</span>
+              {currentUser.role === 'Admin' ? (
+                <a href={`${import.meta.env.BASE_URL}?path=/admin`} className="flex items-center gap-1.5 font-bold text-stone-900 text-xs">
+                  <ShieldCheck className="w-4 h-4 text-[#A88238]" /> Admin dashboard
+                </a>
+              ) : (
+                <span className="text-stone-500 text-[11px] truncate">Signed in as {currentUser.email}</span>
+              )}
               <button
                 onClick={() => {
                   onLogout();

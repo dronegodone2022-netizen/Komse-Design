@@ -437,6 +437,34 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     );
   };
 
+  // The admin portal shares the store's sign-in, so signing out here signs out of the whole site.
+  const handleAdminSignOut = async () => {
+    setIsAdminAuthenticated(false);
+    setAdminPassword('');
+    if (supabase) await supabase.auth.signOut();
+    showAdminToast('Signed out.');
+  };
+
+  // Reuse an existing admin sign-in instead of asking for the password again, and lock the
+  // portal if the session ends elsewhere (for example, signing out from the store).
+  useEffect(() => {
+    const client = supabase;
+    if (!client) return;
+    const checkAdminSession = async (userId: string | undefined) => {
+      if (!userId) {
+        setIsAdminAuthenticated(false);
+        return;
+      }
+      const { data: profile } = await client.from('profiles').select('role, status').eq('id', userId).maybeSingle();
+      setIsAdminAuthenticated(profile?.role === 'Admin' && profile?.status === 'Active');
+    };
+    void client.auth.getSession().then(({ data }) => checkAdminSession(data.session?.user.id));
+    const { data: listener } = client.auth.onAuthStateChange((_event, session) => {
+      void checkAdminSession(session?.user.id);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
   const handleAutofillAdmin = () => {
     setAdminEmail('admin@komse.com');
     setAdminPassword('admin123');
@@ -851,10 +879,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
           <div className="flex items-center gap-1.5 shrink-0">
             {isAdminAuthenticated && (
               <button
-                onClick={() => {
-                  setIsAdminAuthenticated(false);
-                  showAdminToast('Signed out of Admin Session.');
-                }}
+                onClick={() => void handleAdminSignOut()}
                 className="lg:hidden p-2.5 text-stone-400 hover:text-white hover:bg-stone-800 rounded-lg transition-colors cursor-pointer"
                 title="Sign out"
                 aria-label="Sign out"
@@ -982,10 +1007,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 </nav>
                 <div className="p-3 border-t border-stone-800">
                   <button
-                    onClick={() => {
-                      setIsAdminAuthenticated(false);
-                      showAdminToast('Signed out of Admin Session.');
-                    }}
+                    onClick={() => void handleAdminSignOut()}
                     className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-stone-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
                   >
                     <LogOut className="w-4 h-4" /> Sign out
