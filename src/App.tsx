@@ -460,22 +460,20 @@ export default function App() {
     const client = supabase;
     if (!client || !currentUser) return;
 
+    const isAdmin = currentUser.role === 'Admin';
     const loadUserRecords = async () => {
+      // RLS returns every order to an active admin and only their own orders to a customer.
+      const ordersQuery = client.from('orders').select('*').order('created_at', { ascending: false });
       const [{ data: orders, error: ordersError }, { data: requests }] = await Promise.all([
-        client.from('orders').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }),
+        isAdmin ? ordersQuery : ordersQuery.eq('user_id', currentUser.id),
         client.from('reproduction_requests').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false }),
       ]);
 
       if (!ordersError && orders) {
-        // The database is the source of truth for this customer's orders, so drop cached copies
-        // of their orders that no longer exist (for example, ones an admin deleted).
-        const savedOrders = orders.map((row) => orderFromRow(row as Record<string, unknown>));
-        const ownsOrder = (order: UserOrder) =>
-          order.userId === currentUser.id || order.customerEmail?.toLowerCase() === currentUser.email.toLowerCase();
-        setUserOrders((previous) => [
-          ...savedOrders,
-          ...previous.filter((order) => !ownsOrder(order) && !savedOrders.some((savedOrder) => savedOrder.id === order.id)),
-        ]);
+        // The database is the source of truth; replace anything held locally.
+        setUserOrders(orders.map((row) => orderFromRow(row as Record<string, unknown>)));
+      } else if (ordersError) {
+        console.error('Order load failed:', ordersError);
       }
       if (requests?.length) {
         const savedRequests = requests.map((row) => reproductionFromRow(row as Record<string, unknown>));
@@ -492,7 +490,7 @@ export default function App() {
       .channel(`customer-orders-${currentUser.id}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${currentUser.id}` },
+        { event: '*', schema: 'public', table: 'orders', ...(isAdmin ? {} : { filter: `user_id=eq.${currentUser.id}` }) },
         (payload) => {
           if (payload.eventType === 'DELETE') {
             const deletedId = String((payload.old as Record<string, unknown>).order_id || '');
@@ -623,6 +621,8 @@ export default function App() {
       itemsSummary: '1x West African Cotton Sweatshirt (M)',
     },
     ];
+    // Real orders are loaded from Supabase after sign-in; the browser cache is only for local demo mode.
+    if (supabase) return [];
     const deletedOrderIds = readDeletedIds('komse_deleted_orders');
     try {
       const saved = localStorage.getItem('komse_orders');
@@ -643,7 +643,8 @@ export default function App() {
 
   useEffect(() => {
     try {
-      localStorage.setItem('komse_orders', JSON.stringify(userOrders));
+      if (supabase) localStorage.removeItem('komse_orders');
+      else localStorage.setItem('komse_orders', JSON.stringify(userOrders));
     } catch (e) {}
   }, [userOrders]);
 

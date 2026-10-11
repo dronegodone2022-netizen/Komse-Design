@@ -235,7 +235,9 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
   const [profilePictureError, setProfilePictureError] = useState('');
 
   // Tracking states
-  const [trackingOrder, setTrackingOrder] = useState<UserOrder | null>(null);
+  const [trackingOrderId, setTrackingOrderId] = useState<string | null>(null);
+  const trackingOrder = userOrders.find((order) => order.id === trackingOrderId) || null;
+  const setTrackingOrder = (order: UserOrder | null) => setTrackingOrderId(order?.id ?? null);
   const [copiedTracking, setCopiedTracking] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<UserOrder | null>(null);
 
