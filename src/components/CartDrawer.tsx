@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CartItem, CurrencyCode } from '../types';
 import { CURRENCIES } from '../data/products';
 import { formatPrice as formatPriceIn } from '../lib/price';
+import { FRANCE_FREE_SHIPPING_THRESHOLD_EUR, countryCodeFor, shippingCostEur } from '../../supabase/functions/_shared/shipping.ts';
 import { X, Trash2, ShoppingBag, ArrowRight, Truck, Tag, Sparkles } from 'lucide-react';
 
 interface CartDrawerProps {
@@ -12,6 +13,7 @@ interface CartDrawerProps {
   onUpdateQuantity: (cartItemId: string, newQty: number) => void;
   onRemoveItem: (cartItemId: string) => void;
   onOpenCheckout: () => void;
+  shippingCountry?: string;
 }
 
 const CartDrawerContent: React.FC<CartDrawerProps> = ({
@@ -22,6 +24,7 @@ const CartDrawerContent: React.FC<CartDrawerProps> = ({
   onUpdateQuantity,
   onRemoveItem,
   onOpenCheckout,
+  shippingCountry,
 }) => {
 
   const currency = CURRENCIES[currentCurrency] || CURRENCIES.EUR;
@@ -35,12 +38,14 @@ const CartDrawerContent: React.FC<CartDrawerProps> = ({
     0
   );
 
-  const freeShippingThresholdEur = 100.0;
+  const freeShippingThresholdEur = FRANCE_FREE_SHIPPING_THRESHOLD_EUR;
+  const destinationCountry = shippingCountry || 'France';
+  const shipsToFrance = (countryCodeFor(destinationCountry) || 'FR') === 'FR';
   const freeShippingProgress = Math.min(100, (subtotalEur / freeShippingThresholdEur) * 100);
   const remainingForFreeShipping = Math.max(0, freeShippingThresholdEur - subtotalEur);
 
   const discountEur = (subtotalEur * discountPercent) / 100;
-  const shippingEur = subtotalEur >= freeShippingThresholdEur || cartItems.length === 0 ? 0 : 7.5;
+  const shippingEur = cartItems.length === 0 ? 0 : shippingCostEur(subtotalEur, destinationCountry);
   const totalEur = subtotalEur - discountEur + shippingEur;
 
   const formatPrice = (amountEur: number) => {
@@ -88,17 +93,21 @@ const CartDrawerContent: React.FC<CartDrawerProps> = ({
             <div className="flex items-center justify-between text-xs font-semibold text-stone-800 mb-1.5">
               <span className="flex items-center gap-1.5">
                 <Truck className="w-4 h-4 text-[#C5A059]" />
-                {remainingForFreeShipping > 0
-                  ? `Add ${formatPrice(remainingForFreeShipping)} more for FREE France delivery!`
-                  : '🎉 You unlocked FREE Delivery!'}
+                {!shipsToFrance
+                  ? `Shipping to ${destinationCountry}: ${formatPrice(shippingEur || shippingCostEur(0, destinationCountry))}. Free delivery applies in France only.`
+                  : remainingForFreeShipping > 0
+                  ? `Add ${formatPrice(remainingForFreeShipping)} more for FREE delivery in France!`
+                  : '🎉 You unlocked FREE delivery in France!'}
               </span>
             </div>
-            <div className="w-full bg-stone-200 h-2 rounded-full overflow-hidden">
-              <div
-                className="bg-[#C5A059] h-full transition-all duration-500 rounded-full"
-                style={{ width: `${freeShippingProgress}%` }}
-              />
-            </div>
+            {shipsToFrance && (
+              <div className="w-full bg-stone-200 h-2 rounded-full overflow-hidden">
+                <div
+                  className="bg-[#C5A059] h-full transition-all duration-500 rounded-full"
+                  style={{ width: `${freeShippingProgress}%` }}
+                />
+              </div>
+            )}
           </div>
 
           {/* Items Scrollable Container */}
@@ -236,7 +245,7 @@ const CartDrawerContent: React.FC<CartDrawerProps> = ({
                   <span className="font-semibold text-stone-900">{formatPrice(subtotalEur)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Shipping (France):</span>
+                  <span>Shipping ({destinationCountry}):</span>
                   <span>{shippingEur === 0 ? 'FREE' : formatPrice(shippingEur)}</span>
                 </div>
                 <div className="flex justify-between text-sm font-black text-stone-900 border-t border-stone-200 pt-2">

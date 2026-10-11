@@ -37,7 +37,7 @@ export const Footer: React.FC<FooterProps> = ({
             </div>
             <div>
               <span className="font-bold block text-stone-900">Free Shipping</span>
-              <span>On orders over €100</span>
+              <span>In France on orders over €100</span>
             </div>
           </button>
 

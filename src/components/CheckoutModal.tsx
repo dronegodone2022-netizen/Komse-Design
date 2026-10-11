@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CartItem, CurrencyCode, UserOrder, UserProfile } from '../types';
 import { CURRENCIES } from '../data/products';
+import { shippingCostEur } from '../../supabase/functions/_shared/shipping.ts';
 import { formatPrice as formatPriceIn } from '../lib/price';
 import { apiUrl, supabaseFunctionUrl } from '../lib/api';
 import { COUNTRY_OPTIONS, detectDefaultCountry, getDialCode } from '../utils/currencyDetector';
@@ -53,7 +54,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     (acc, item) => acc + item.product.price * item.quantity,
     0
   );
-  const shippingEur = subtotalEur >= 100 || cartItems.length === 0 ? 0 : 7.5;
+  const shippingEur = cartItems.length === 0 ? 0 : shippingCostEur(subtotalEur, formData.country);
   const totalEur = subtotalEur + shippingEur;
 
   const formatPrice = (amountEur: number) => {

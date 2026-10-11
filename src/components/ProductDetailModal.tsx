@@ -389,7 +389,7 @@ const ProductDetailModalContent: React.FC<ProductDetailModalProps> = ({
             <div className="grid grid-cols-2 gap-2 text-[11px] text-stone-500 pt-2">
               <div className="flex items-center gap-1.5">
                 <Truck className="w-3.5 h-3.5 text-[#C5A059]" />
-                <span>Free delivery over €100</span>
+                <span>Free delivery in France over €100</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <RotateCcw className="w-3.5 h-3.5 text-[#C5A059]" />

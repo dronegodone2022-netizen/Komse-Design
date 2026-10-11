@@ -1361,6 +1361,7 @@ export default function App() {
         onUpdateQuantity={handleUpdateQuantity}
         onRemoveItem={handleRemoveCartItem}
         onOpenCheckout={handleProceedToCheckout}
+        shippingCountry={currentUser?.country}
       />
 
           <CheckoutModal
