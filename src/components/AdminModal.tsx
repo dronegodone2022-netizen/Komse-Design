@@ -1961,9 +1961,20 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                       type="text"
                                       value={editingOrderTracking.tracking}
                                       onChange={(e) => setEditingOrderTracking({ id: order.id, tracking: e.target.value })}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          handleOrderStatusChange(order.id, order.status, editingOrderTracking.tracking);
+                                          setEditingOrderTracking(null);
+                                        }
+                                        if (e.key === 'Escape') setEditingOrderTracking(null);
+                                      }}
+                                      autoFocus
+                                      placeholder="e.g. DHL-123456"
                                       className="px-2 py-1 text-xs border border-stone-300 rounded font-mono w-32"
                                     />
                                     <button
+                                      title="Save tracking number"
+                                      aria-label="Save tracking number"
                                       onClick={() => {
                                         handleOrderStatusChange(order.id, order.status, editingOrderTracking.tracking);
                                         setEditingOrderTracking(null);
@@ -1987,7 +1998,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                               <td data-label="Status" className="p-3.5">
                                 <select
                                   value={order.status}
-                                  onChange={(e) => handleOrderStatusChange(order.id, e.target.value as UserOrder['status'])}
+                                  onChange={(e) => handleOrderStatusChange(order.id, e.target.value as UserOrder['status'], order.trackingNumber)}
                                   className={`px-2 py-1 text-[11px] font-bold uppercase rounded border focus:outline-none ${
                                     order.status === 'Delivered'
                                       ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
