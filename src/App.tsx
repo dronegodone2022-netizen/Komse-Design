@@ -25,7 +25,7 @@ import { Newsletter } from './components/Newsletter';
 import { Footer } from './components/Footer';
 import { CheckCircle2 } from 'lucide-react';
 import { detectDefaultCurrency } from './utils/currencyDetector';
-import { supabase } from './lib/supabase';
+import { isAdminRoute, supabase } from './lib/supabase';
 import { profileFromRow, profileToRow } from './lib/profile';
 import { apiUrl } from './lib/api';
 
@@ -202,15 +202,8 @@ export default function App() {
 
   const [wishlistIds, setWishlistIds] = useState<string[]>([]);
 
-  const getRoutePath = () => {
-    const params = new URLSearchParams(window.location.search);
-    const pathParam = params.get('path');
-    if (pathParam) return pathParam;
-    return window.location.pathname;
-  };
-
   // Modals Visibility
-  const [adminModalOpen, setAdminModalOpen] = useState(() => getRoutePath() === '/admin');
+  const [adminModalOpen, setAdminModalOpen] = useState(() => isAdminRoute());
   const [customOrderModalOpen, setCustomOrderModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [productModalOpen, setProductModalOpen] = useState(false);
@@ -441,7 +434,7 @@ export default function App() {
   }, [usersList]);
 
   useEffect(() => {
-    if (!supabase || window.location.pathname !== '/admin' || currentUser?.role !== 'Admin') return;
+    if (!supabase || !isAdminRoute() || currentUser?.role !== 'Admin') return;
     const client = supabase;
 
     const loadAdminUsers = async () => {
@@ -1210,7 +1203,7 @@ export default function App() {
         // The checkout email can differ from the account email, so also match the owning account.
         order.userId === currentUser.id || order.customerEmail?.toLowerCase() === currentUser.email.toLowerCase())
     : [];
-  const isAdminPage = getRoutePath() === '/admin';
+  const isAdminPage = isAdminRoute();
 
   return (
     <div className="min-h-screen bg-[#FAF9F6] font-sans text-stone-900 selection:bg-[#C5A059] selection:text-white flex flex-col justify-between">
@@ -1435,8 +1428,9 @@ export default function App() {
             isOpen={adminModalOpen}
             isPage={isAdminPage}
             onClose={() => {
+              // Full reload so the store starts with its own (customer) sign-in.
               setAdminModalOpen(false);
-              window.history.replaceState({}, '', '/');
+              window.location.assign(import.meta.env.BASE_URL);
             }}
             products={productsList}
             onAddProduct={handleAddProduct}
