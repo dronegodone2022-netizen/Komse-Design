@@ -1,4 +1,5 @@
 import { UserOrder, UserProfile } from '../types';
+import { BUSINESS } from './business';
 
 const escapeHtml = (value: unknown) =>
   String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]!));
@@ -61,7 +62,7 @@ const buildInvoiceHtml = (order: UserOrder, customer: UserProfile | null, logoUr
   <div class="head">
     <div class="brand">
       <img src="${escapeHtml(logoUrl)}" alt="KOMSE DESIGN" />
-      <div><h1>KOMSE DESIGN</h1><p>From Sierra Leone to the world · komsedesign.com</p></div>
+      <div><h1>KOMSE DESIGN</h1><p>${BUSINESS.addressLines.map(escapeHtml).join(' · ')}</p><p>${escapeHtml(BUSINESS.email)} · ${escapeHtml(BUSINESS.phone)}${BUSINESS.siret ? ` · SIRET ${escapeHtml(BUSINESS.siret)}` : ''}</p></div>
     </div>
     <div class="doc">
       <h2>INVOICE</h2>

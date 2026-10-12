@@ -21,7 +21,7 @@ const FAQ_DATA: FAQItem[] = [
     id: 'ship-1',
     category: 'shipping',
     question: 'Where do you ship from and what are the delivery timelines?',
-    answer: 'All orders are dispatched from our central Paris studio in France. Delivery within France and West Europe takes 2-4 business days. Express shipping across Sierra Leone and West Africa takes 4-7 business days, while worldwide shipping takes 5-8 business days.',
+    answer: 'All orders ship from our studio in Montigny-lès-Metz, France. Delivery usually takes 2-4 business days within France, 3-7 within Europe and 5-12 to Africa and the rest of the world. Shipping costs €7.50 in France (free on orders of €100 or more), €15 to Europe, €25 to Africa and €30 elsewhere.',
   },
   {
     id: 'size-1',
@@ -39,7 +39,7 @@ const FAQ_DATA: FAQItem[] = [
     id: 'ret-1',
     category: 'returns',
     question: 'What is your return and exchange policy?',
-    answer: 'We offer a 7-day hassle-free return and exchange guarantee on all standard, unworn items with original tags intact. Return shipping is free within France.',
+    answer: 'You can return any unworn item with its tags within 14 days of delivery for a full refund, as provided by EU consumer law. Contact support@komsedesign.com with your order number to start a return. Made-to-order and personalised items cannot be returned unless faulty.',
   },
   {
     id: 'ship-4',
@@ -157,7 +157,7 @@ export const FAQModal: React.FC<FAQModalProps> = ({
               <HelpCircle className="w-10 h-10 text-stone-400 mx-auto" />
               <p className="text-sm font-bold text-stone-800">No matching questions found</p>
               <p className="text-xs text-stone-500">
-                Try searching for another keyword or reach out directly to our support team in Paris.
+                Try searching for another keyword or reach out directly to our support team.
               </p>
             </div>
           ) : (
@@ -199,7 +199,7 @@ export const FAQModal: React.FC<FAQModalProps> = ({
         {/* Modal Footer Call to Action */}
         <div className="p-4 sm:px-6 bg-[#F4F3EF] border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs flex-shrink-0">
           <div className="text-stone-600 text-center sm:text-left">
-            Still have questions? Our support team in Paris is ready to assist.
+            Still have questions? Our support team is ready to assist.
           </div>
 
           <div className="flex items-center gap-2">

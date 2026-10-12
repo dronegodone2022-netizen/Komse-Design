@@ -30,6 +30,7 @@ import {
   Star,
   Trash2,
 } from 'lucide-react';
+import { BUSINESS } from '../lib/business';
 import { printInvoice } from '../lib/invoice';
 import komseLogoImg from '../assets/images/komse_official_logo.png';
 
@@ -228,7 +229,7 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
   // Edit Address states
   const [editAddress, setEditAddress] = useState(currentUser?.address || 'Sample Street 1');
   const [editPostalCode, setEditPostalCode] = useState(currentUser?.postalCode || '');
-  const [editCity, setEditCity] = useState(currentUser?.city || 'Paris');
+  const [editCity, setEditCity] = useState(currentUser?.city || '');
   const [editCountry, setEditCountry] = useState(currentUser?.country || 'France');
   const [editPhone, setEditPhone] = useState(currentUser?.phone || '+33 6 12 34 56 78');
   const [editPhoneCode, setEditPhoneCode] = useState(() => getDialCode(currentUser?.country || 'France'));
@@ -339,39 +340,53 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
     window.history.replaceState({}, '', window.location.pathname);
   };
 
-  const getTrackingHistory = (order: UserOrder) => {
-    const carrier = order.trackingNumber.startsWith('LP-')
-      ? 'La Poste Colissimo Paris'
-      : order.trackingNumber.startsWith('FEDEX-')
-      ? 'FedEx Express International'
-      : 'DHL Express Paris Atelier';
+  const hasTracking = (order: UserOrder) => Boolean(order.trackingNumber) && order.trackingNumber !== 'Pending assignment';
 
-    if (order.status === 'Delivered') {
-      return [
-        { date: `${order.date} • 14:32`, title: 'Package Delivered', desc: 'Handed directly to recipient at registered address. Signed for by customer.', location: `${order.customerName ? order.customerName : 'Recipient Address'}`, status: 'completed' },
-        { date: `${order.date} • 08:15`, title: 'Out for Delivery', desc: `Package loaded onto ${carrier} express courier van.`, location: 'Local Express Delivery Hub', status: 'completed' },
-        { date: `${order.date} • 03:40`, title: 'Arrived at Local Destination Hub', desc: 'Import customs cleared. Package sorted for final route delivery.', location: 'Regional Destination Gateway', status: 'completed' },
-        { date: '1 Day Prior • 19:10', title: 'In Flight Transit', desc: 'Departed Paris Charles de Gaulle Airport (CDG) via Express Air Cargo.', location: 'Paris CDG Airport, France', status: 'completed' },
-        { date: '2 Days Prior • 16:00', title: 'Package Dispatched', desc: `Handed over to ${carrier} at KOMSE Paris Atelier. Registered tracking ID.`, location: 'Paris Atelier, France', status: 'completed' },
-        { date: '2 Days Prior • 10:00', title: 'Quality Checked & Packed', desc: 'Garment tailored, quality inspected, and packaged in premium heritage box.', location: 'KOMSE Design Studio', status: 'completed' },
-      ];
-    } else if (order.status === 'Shipped') {
-      return [
-        { date: 'Today • 08:30', title: 'Out for Delivery / Express Transit', desc: `Package is currently en route via ${carrier}. Estimated arrival today.`, location: 'En Route to Destination Address', status: 'active' },
-        { date: 'Yesterday • 18:20', title: 'Arrived at Transit Hub', desc: 'Customs clearance documents verified and approved for final route.', location: 'International Gateway Facility', status: 'completed' },
-        { date: `${order.date} • 16:00`, title: 'Dispatched from Paris Atelier', desc: `Package picked up by ${carrier} courier service.`, location: 'Paris Atelier, France', status: 'completed' },
-        { date: `${order.date} • 09:15`, title: 'Order Prepared & Tailored', desc: 'Garment tailored and packed with custom heritage seal.', location: 'KOMSE Design Studio', status: 'completed' },
-      ];
-    } else if (order.status === 'Processing') {
-      return [
-        { date: 'Active Now', title: 'Crafting & Embroidery In Progress', desc: 'Your order is currently being tailored & embroidered by master artisans at our Paris Atelier.', location: 'KOMSE Paris Studio', status: 'active' },
-        { date: `${order.date} • 10:00`, title: 'Order Confirmed & Approved', desc: 'Payment received. Tailoring ticket issued to Paris atelier line.', location: 'KOMSE Paris Studio', status: 'completed' },
-      ];
-    } else {
-      return [
-        { date: `${order.date}`, title: 'Order Cancelled', desc: 'This order was cancelled and refunded per customer or administrative request.', location: 'KOMSE System', status: 'cancelled' },
-      ];
+  // Carrier is inferred from the tracking number format; live scans are on the carrier's own site.
+  const carrierFor = (trackingNumber: string) => {
+    const code = encodeURIComponent(trackingNumber);
+    if (/^DHL/i.test(trackingNumber) || /^\d{10}$/.test(trackingNumber)) {
+      return { name: 'DHL Express', url: `https://www.dhl.com/fr-en/home/tracking.html?tracking-id=${code}` };
     }
+    if (/^(LP|6A|8[LV]|[A-Z]{2}\d{9}FR)/i.test(trackingNumber)) {
+      return { name: 'La Poste / Colissimo', url: `https://www.laposte.fr/outils/suivre-vos-envois?code=${code}` };
+    }
+    if (/^FEDEX/i.test(trackingNumber)) return { name: 'FedEx', url: `https://www.fedex.com/fedextrack/?trknbr=${code}` };
+    if (/^UPS|^1Z/i.test(trackingNumber)) return { name: 'UPS', url: `https://www.ups.com/track?tracknum=${code}` };
+    return { name: 'Courier', url: `https://t.17track.net/en#nums=${code}` };
+  };
+
+  // Order milestones from the real order status only (no invented times or locations).
+  const getTrackingHistory = (order: UserOrder) => {
+    if (order.status === 'Cancelled') {
+      return [{ date: order.date, title: 'Order cancelled', desc: 'This order was cancelled. Contact support if you have any questions.', location: '', status: 'cancelled' }];
+    }
+    const shipped = order.status === 'Shipped' || order.status === 'Delivered';
+    const carrier = hasTracking(order) ? carrierFor(order.trackingNumber).name : 'our courier';
+    return [
+      order.status === 'Delivered'
+        ? { date: '', title: 'Delivered', desc: 'Your order has been delivered. Enjoy your KOMSE pieces!', location: '', status: 'completed' }
+        : null,
+      shipped
+        ? {
+            date: '',
+            title: 'Shipped',
+            desc: hasTracking(order)
+              ? `Handed to ${carrier} with tracking number ${order.trackingNumber}. Use "Track with carrier" for live delivery updates.`
+              : 'Your order is on its way. The tracking number will appear here once assigned.',
+            location: '',
+            status: order.status === 'Delivered' ? 'completed' : 'active',
+          }
+        : null,
+      {
+        date: '',
+        title: 'Preparing your order',
+        desc: `Your pieces are being prepared and packed at our studio in ${BUSINESS.city}.`,
+        location: '',
+        status: shipped ? 'completed' : 'active',
+      },
+      { date: order.date, title: 'Order placed', desc: 'Payment received and order confirmed.', location: '', status: 'completed' },
+    ].filter((event): event is NonNullable<typeof event> => event !== null);
   };
 
   // Quick Demo Login Handler
@@ -723,7 +738,7 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                         </button>
 
                         <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">
-                          LIVE EXPRESS TRACKER
+                          ORDER TRACKER
                         </span>
                       </div>
 
@@ -786,15 +801,21 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                           </div>
 
                           <div className="bg-stone-900/80 p-3 rounded-lg border border-stone-800 space-y-0.5">
-                            <span className="text-[10px] text-stone-400 font-bold uppercase block">Express Carrier</span>
+                            <span className="text-[10px] text-stone-400 font-bold uppercase block">Carrier</span>
                             <span className="font-bold text-stone-100 flex items-center gap-1.5">
                               <Truck className="w-4 h-4 text-[#C5A059]" />
-                              {trackingOrder.trackingNumber.startsWith('LP-')
-                                ? 'La Poste Colissimo France'
-                                : trackingOrder.trackingNumber.startsWith('FEDEX-')
-                                ? 'FedEx Express International'
-                                : 'DHL Express Paris Atelier'}
+                              {hasTracking(trackingOrder) ? carrierFor(trackingOrder.trackingNumber).name : 'Assigned when shipped'}
                             </span>
+                            {hasTracking(trackingOrder) && (
+                              <a
+                                href={carrierFor(trackingOrder.trackingNumber).url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#C5A059] hover:underline pt-1"
+                              >
+                                Track with carrier <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -811,7 +832,7 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                               ✓
                             </div>
                             <span className="text-[10px] font-bold text-stone-900">Confirmed</span>
-                            <span className="text-[9px] text-stone-500">Paris Studio</span>
+                            <span className="text-[9px] text-stone-500">Paid</span>
                           </div>
 
                           <div className="flex flex-col items-center space-y-1 z-10">
@@ -824,8 +845,8 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                             >
                               ✓
                             </div>
-                            <span className="text-[10px] font-bold text-stone-900">Tailored</span>
-                            <span className="text-[9px] text-stone-500">Handcrafted</span>
+                            <span className="text-[10px] font-bold text-stone-900">Preparing</span>
+                            <span className="text-[9px] text-stone-500">In our studio</span>
                           </div>
 
                           <div className="flex flex-col items-center space-y-1 z-10">
@@ -863,7 +884,7 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                       {/* Detailed Logistics History */}
                       <div className="bg-white p-5 rounded-xl border border-stone-200 space-y-3 shadow-2xs">
                         <h4 className="font-bold text-stone-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                          <MapPin className="w-4 h-4 text-[#C5A059]" /> Detailed Logistics History Log
+                          <MapPin className="w-4 h-4 text-[#C5A059]" /> Order progress
                         </h4>
 
                         <div className="space-y-4 pl-2 border-l-2 border-stone-200 ml-1">
@@ -883,9 +904,11 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                                 <span className="text-[10px] text-stone-500 font-medium">{event.date}</span>
                               </div>
                               <p className="text-[11px] text-stone-600">{event.desc}</p>
-                              <span className="text-[10px] text-[#C5A059] font-semibold block pt-0.5">
-                                📍 {event.location}
-                              </span>
+                              {event.location && (
+                                <span className="text-[10px] text-[#C5A059] font-semibold block pt-0.5">
+                                  📍 {event.location}
+                                </span>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -911,7 +934,7 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
 
                           <div className="flex items-center gap-2">
                             <a
-                              href={`https://wa.me/33612345678?text=Hello%20KOMSE%20Design%20Support,%20I%20need%20help%20with%20delivery%20for%20Order%20${trackingOrder.id}%20(Tracking:%20${trackingOrder.trackingNumber})`}
+                              href={`https://wa.me/33767543093?text=Hello%20KOMSE%20Design%20Support,%20I%20need%20help%20with%20delivery%20for%20Order%20${trackingOrder.id}%20(Tracking:%20${trackingOrder.trackingNumber})`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold px-3 py-1.5 rounded cursor-pointer flex items-center gap-1.5 text-xs transition-colors shadow-2xs"
@@ -1001,7 +1024,7 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                               <div className="text-stone-700 space-y-1">
                                 <p className="font-semibold text-stone-900">{ord.itemsSummary}</p>
                                 <p className="text-[11px] text-stone-500">
-                                  {ord.itemsCount} {ord.itemsCount === 1 ? 'item' : 'items'} • Dispatch Studio: Paris, France
+                                  {ord.itemsCount} {ord.itemsCount === 1 ? 'item' : 'items'} • Ships from {BUSINESS.city}, France
                                 </p>
                               </div>
 

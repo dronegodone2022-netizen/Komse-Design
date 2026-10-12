@@ -17,13 +17,13 @@ const FAQ_ITEMS: FAQItem[] = [
     id: '1',
     category: 'shipping',
     question: 'Where do you ship from and how long does delivery take?',
-    answer: 'All orders are dispatched directly from our studio atelier in Paris, France. Standard shipping within Europe takes 2–4 business days. International express shipping to the UK, USA, Canada, and West Africa takes 3–6 business days via DHL Express.',
+    answer: 'All orders ship from our studio in Montigny-lès-Metz, France. Delivery usually takes 2–4 business days within France, 3–7 within Europe and 5–12 to Africa and the rest of the world. Shipping costs €7.50 in France (free on orders of €100 or more), €15 to Europe, €25 to Africa and €30 elsewhere. You receive a tracking number as soon as your order ships.',
   },
   {
     id: '2',
     category: 'quality',
     question: 'How are KOMSE garments crafted?',
-    answer: 'We craft our streetwear with 100% heavy organic French Terry cotton (400–480 GSM) and premium pre-shrunk fabrics. Every embroidery piece features authentic Sierra Leonean cultural iconography, stitched with high-density threads built for longevity.',
+    answer: 'We craft our streetwear from premium heavyweight fabrics. Every embroidered piece features authentic Sierra Leonean cultural iconography, stitched with high-density threads built to last. Fabric details are listed on each product page.',
   },
   {
     id: '3',
@@ -35,7 +35,7 @@ const FAQ_ITEMS: FAQItem[] = [
     id: '4',
     category: 'returns',
     question: 'What is your return and exchange policy?',
-    answer: 'We offer a 7-day hassle-free return and exchange policy for all unworn items in original packaging with tags attached. Returns within France are complimentary. For international exchanges, our customer care team will assist you step-by-step.',
+    answer: 'You can return any unworn item with its tags within 14 days of delivery for a full refund, as provided by EU consumer law. Contact support@komsedesign.com with your order number to start a return. Made-to-order and personalised items cannot be returned unless faulty.',
   },
   {
     id: '5',
@@ -140,7 +140,7 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ onOpenContact }) => {
               STILL HAVE QUESTIONS?
             </h3>
             <p className="text-xs text-stone-300">
-              Our Paris atelier customer support team is available 7 days a week to assist you.
+              Our customer support team replies within 24 hours.
             </p>
           </div>
 

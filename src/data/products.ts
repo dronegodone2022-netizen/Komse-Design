@@ -65,7 +65,7 @@ export const COLLECTION_CATEGORIES: {
     title: 'T-Shirts',
     count: '14 Items',
     image: Loyelty_Jersey4Img,
-    description: 'Premium organic cotton t-shirts with 3D gold embroidered crest and cultural motifs.',
+    description: 'Premium cotton t-shirts with 3D gold embroidered crest and cultural motifs.',
   },
   {
     id: 'Sweaters',
@@ -100,7 +100,7 @@ export const COLLECTION_CATEGORIES: {
     title: 'Overalls',
     count: '5 Items',
     image: Green_White_Blue_OverallImg1,
-    description: 'Premium organic cotton overalls with 3D gold embroidered crest and cultural motifs.',
+    description: 'Premium cotton overalls with 3D gold embroidered crest and cultural motifs.',
   },
  
  
@@ -123,7 +123,7 @@ export const PRODUCTS: Product[] = [
       Loyelty_Jersey4Img,
     ],
     description:
-      'The KOMSE Love & Loyalty Jersey is a premium organic cotton t-shirt featuring 3D gold embroidered crest and cultural motifs. Designed for comfort and style, it represents pride in heritage while offering a modern streetwear aesthetic.',
+      'The KOMSE Love & Loyalty Jersey is a premium cotton t-shirt featuring 3D gold embroidered crest and cultural motifs. Designed for comfort and style, it represents pride in heritage while offering a modern streetwear aesthetic.',
     features: [
       'Premium jersey material fabric',
       '3D gold embroidered crest',
@@ -156,7 +156,7 @@ export const PRODUCTS: Product[] = [
       SL_66_Independence_Jesery4Img,
     ],
     description:
-      'KOMSE 66 Independence Jersey is a premium organic cotton t-shirt featuring 3D gold embroidered crest and cultural motifs. Designed for comfort and style, it represents pride in heritage while offering a modern streetwear aesthetic.',
+      'KOMSE 66 Independence Jersey is a premium cotton t-shirt featuring 3D gold embroidered crest and cultural motifs. Designed for comfort and style, it represents pride in heritage while offering a modern streetwear aesthetic.',
     features: [
       'Premium jersey material fabric',
       '3D gold embroidered crest',
@@ -187,7 +187,7 @@ export const PRODUCTS: Product[] = [
       OverSize_Mesh_Baseball_ShirtImg4,
     ],
     description:
-      'The KOMSE OverSize Mesh Baseball Shirt is a premium organic cotton t-shirt featuring 3D gold embroidered crest and cultural motifs. Designed for comfort and style, it represents pride in heritage while offering a modern streetwear aesthetic.',
+      'The KOMSE OverSize Mesh Baseball Shirt is a premium cotton t-shirt featuring 3D gold embroidered crest and cultural motifs. Designed for comfort and style, it represents pride in heritage while offering a modern streetwear aesthetic.',
     features: [
       'Premium Baseball material fabric',
       'Breathable and durable',
@@ -349,7 +349,7 @@ export const PRODUCTS: Product[] = [
       Green_White_Blue_OverallImg4,
     ],
     description:
-      'KOMSE Unisex Green White Blue Overall is a premium organic cotton overall featuring 3D gold embroidered crest and cultural motifs. Designed for comfort and style, it represents pride in heritage while offering a modern streetwear aesthetic.',
+      'KOMSE Unisex Green White Blue Overall is a premium cotton overall featuring 3D gold embroidered crest and cultural motifs. Designed for comfort and style, it represents pride in heritage while offering a modern streetwear aesthetic.',
     features: [
       'Premium overall material fabric',
       'Breathable and durable',

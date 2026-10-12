@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Shield, FileText, CheckCircle2, Lock, Scale, Mail, Building, Globe } from 'lucide-react';
+import { BUSINESS } from '../lib/business';
 
 interface LegalModalProps {
   isOpen: boolean;
@@ -35,7 +36,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
             </div>
             <div>
               <span className="text-[10px] font-bold text-[#C5A059] uppercase tracking-widest block">
-                KOMSE DESIGN SARL • LEGAL CENTER
+                KOMSE DESIGN • LEGAL CENTER
               </span>
               <h2 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight">
                 {activeTab === 'privacy' ? 'PRIVACY POLICY & DATA PROTECTION' : 'TERMS & CONDITIONS OF SERVICE'}
@@ -100,11 +101,15 @@ export const LegalModal: React.FC<LegalModalProps> = ({
                 </h3>
                 <p>We process your personal information exclusively for legitimate business purposes:</p>
                 <ul className="list-disc pl-5 space-y-1 text-stone-600">
-                  <li>Processing, packaging, and dispatching your orders via DHL Express and postal partners.</li>
-                  <li>Providing real-time tracking updates via SMS or email notifications.</li>
-                  <li>Processing secure payment transactions via PCI-DSS compliant gateways (Stripe & PayPal).</li>
-                  <li>Sending newsletter updates and VIP rewards (only when explicitly opted in).</li>
+                  <li>Processing, packaging, and dispatching your orders via our courier and postal partners.</li>
+                  <li>Sending order confirmations and shipping updates by email.</li>
+                  <li>Processing secure payments through Stripe (PCI-DSS compliant). We never see or store your card details.</li>
+                  <li>Sending newsletter updates (only when you explicitly opt in).</li>
                 </ul>
+                <p className="text-stone-600">
+                  We use these service providers to run the store: Stripe (payments), Supabase (accounts and order database),
+                  Resend (order emails), Hostinger (website hosting) and Google Fonts (typography).
+                </p>
               </section>
 
               <section className="space-y-2">
@@ -136,22 +141,36 @@ export const LegalModal: React.FC<LegalModalProps> = ({
                   For any privacy inquiries or to exercise your statutory rights, contact our Data Protection Officer directly:
                 </p>
                 <div className="bg-stone-100 p-4 rounded-xl border border-stone-200 space-y-1 text-xs">
-                  <p className="font-bold text-stone-900">KOMSE DESIGN SARL — Data Protection Office</p>
-                  <p className="text-stone-600">Email: dpo@komsedesign.com / privacy@komsedesign.com</p>
-                  <p className="text-stone-600">Address: KOMSE DESIGN, Paris, France</p>
+                  <p className="font-bold text-stone-900">{BUSINESS.name} — Data protection</p>
+                  <p className="text-stone-600">Email: {BUSINESS.email}</p>
+                  <p className="text-stone-600">Address: {BUSINESS.addressLines.join(', ')}</p>
+                  <p className="text-stone-600">
+                    You may also lodge a complaint with the CNIL (www.cnil.fr), the French data protection authority.
+                  </p>
                 </div>
               </section>
             </div>
           ) : (
             <div className="space-y-6 max-w-3xl">
-              
+              <section className="space-y-2">
+                <h3 className="text-base font-bold text-stone-900 uppercase border-b border-stone-200 pb-1">
+                  Legal Notice (Mentions légales)
+                </h3>
+                <div className="bg-stone-100 p-4 rounded-xl border border-stone-200 space-y-1 text-xs">
+                  <p><strong>Publisher:</strong> {BUSINESS.name}</p>
+                  <p><strong>Address:</strong> {BUSINESS.addressLines.join(', ')}</p>
+                  <p><strong>Email:</strong> {BUSINESS.email} · <strong>Phone:</strong> {BUSINESS.phone}</p>
+                  {BUSINESS.siret && <p><strong>SIRET:</strong> {BUSINESS.siret}</p>}
+                  <p><strong>Website host:</strong> {BUSINESS.host}</p>
+                </div>
+              </section>
 
               <section className="space-y-2">
                 <h3 className="text-base font-bold text-stone-900 uppercase border-b border-stone-200 pb-1">
                   1. Scope & Acceptance
                 </h3>
                 <p>
-                  These Terms and Conditions govern all sales and services provided by KOMSE DESIGN SARL via our official web platform. By placing an order, you agree without reservation to these terms.
+                  These Terms and Conditions govern all sales and services provided by KOMSE DESIGN via our official website. By placing an order, you agree without reservation to these terms.
                 </p>
               </section>
 
@@ -160,7 +179,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
                   2. Products & Cultural Craftsmanship
                 </h3>
                 <p>
-                  Our garments feature authentic Sierra Leonean embroidery and organic French Terry cotton. Due to the handcrafted nature of our embroidery crests, minor unique thread variations may occur, reflecting genuine artisan craftsmanship.
+                  Our garments feature authentic Sierra Leonean embroidery on premium fabrics. Due to the handcrafted nature of our embroidery crests, minor unique thread variations may occur, reflecting genuine artisan craftsmanship.
                 </p>
               </section>
 
@@ -169,7 +188,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
                   3. Pricing, Taxes & Currencies
                 </h3>
                 <p>
-                  All displayed prices include French Value Added Tax (VAT) where applicable. Currency conversions (USD, GBP, NLE) are calculated using real-time foreign exchange benchmark rates.
+                  All prices are set and charged in euros (EUR) and include French VAT where applicable. Prices shown in other currencies (USD, GBP, NLE) are indicative conversions only. Shipping costs depend on the delivery country and are shown before payment. Orders delivered outside the EU may be subject to local import duties paid by the recipient.
                 </p>
               </section>
 
@@ -178,7 +197,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
                   4. Shipping & Risk of Loss
                 </h3>
                 <p>
-                  Shipments are dispatched with full tracking insurance via DHL Express or partner postal carriers. Risk of loss passes to the customer upon verified physical delivery to the designated shipping address.
+                  Orders ship from our studio in Montigny-lès-Metz, France, with tracking, via our courier and postal partners. Risk of loss passes to the customer upon verified physical delivery to the designated shipping address.
                 </p>
               </section>
 
@@ -187,7 +206,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
                   5. Intellectual Property
                 </h3>
                 <p>
-                  All trademarks, logos, cultural crest designs, brand imagery, and text content are the exclusive intellectual property of KOMSE DESIGN SARL. Unauthorized copying or redistribution is strictly prohibited.
+                  All trademarks, logos, cultural crest designs, brand imagery, and text content are the exclusive intellectual property of KOMSE DESIGN. Unauthorized copying or redistribution is strictly prohibited.
                 </p>
               </section>
 
@@ -196,7 +215,26 @@ export const LegalModal: React.FC<LegalModalProps> = ({
                   6. Governing Law & Jurisdiction
                 </h3>
                 <p>
-                  These terms are governed by French Law. In the event of any dispute, jurisdiction is granted exclusively to the Commercial Court of Paris (Tribunal de Commerce de Paris).
+                  These terms are governed by French law. Before any legal action, please contact us at {BUSINESS.email} so we can
+                  resolve the issue amicably. As a consumer you may also use a consumer mediation service free of charge, and you
+                  keep the protection of the mandatory laws and courts of your country of residence.
+                </p>
+              </section>
+
+              <section className="space-y-2">
+                <h3 className="text-base font-bold text-stone-900 uppercase border-b border-stone-200 pb-1">
+                  7. Right of Withdrawal & Returns
+                </h3>
+                <p>
+                  You have 14 days from the day you receive your order to withdraw from your purchase, without giving any reason.
+                  To do so, email {BUSINESS.email} with your order number, then return the unworn items with their tags within 14
+                  days of telling us. We refund the price of the items and the standard delivery cost within 14 days of receiving
+                  them back, using your original payment method. Return shipping costs are paid by the customer unless the item is
+                  faulty or not as described.
+                </p>
+                <p>
+                  The withdrawal right does not apply to made-to-order or personalised items (for example custom embroidery),
+                  unless they are faulty. All items are covered by the legal guarantee of conformity.
                 </p>
               </section>
             </div>

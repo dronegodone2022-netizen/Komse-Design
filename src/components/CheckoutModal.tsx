@@ -3,6 +3,7 @@ import { CartItem, CurrencyCode, UserOrder, UserProfile } from '../types';
 import { CURRENCIES } from '../data/products';
 import { shippingCostEur } from '../../supabase/functions/_shared/shipping.ts';
 import { formatPrice as formatPriceIn } from '../lib/price';
+import { discountEurFor, normalizePromoCode, promoPercentFor } from '../../supabase/functions/_shared/promo.ts';
 import { apiUrl, supabaseFunctionUrl } from '../lib/api';
 import { COUNTRY_OPTIONS, detectDefaultCountry, getDialCode } from '../utils/currencyDetector';
 import { supabase } from '../lib/supabase';
@@ -16,6 +17,7 @@ interface CheckoutModalProps {
   currentUser: UserProfile | null;
   onClearCart: () => void;
   onOrderCompleted: (order: Omit<UserOrder, 'id'> & { id: string }) => void;
+  promoCode?: string;
 }
 
 export const CheckoutModal: React.FC<CheckoutModalProps> = ({
@@ -26,6 +28,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   currentUser,
   onClearCart,
   onOrderCompleted,
+  promoCode = '',
 }) => {
   const currency = CURRENCIES[currentCurrency] || CURRENCIES.EUR;
 
@@ -55,7 +58,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     0
   );
   const shippingEur = cartItems.length === 0 ? 0 : shippingCostEur(subtotalEur, formData.country);
-  const totalEur = subtotalEur + shippingEur;
+  const promoPercent = promoPercentFor(promoCode);
+  const discountEur = discountEurFor(cartItems.map((item) => ({ priceEur: item.product.price, quantity: item.quantity })), promoPercent);
+  const totalEur = subtotalEur - discountEur + shippingEur;
 
   const formatPrice = (amountEur: number) => {
     return formatPriceIn(amountEur, currency);
@@ -154,6 +159,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         body: JSON.stringify({
           orderId: `KOMSE-${Math.floor(100000 + Math.random() * 900000)}`,
           returnUrl: `${window.location.origin}${import.meta.env.BASE_URL}`,
+          promoCode: promoPercent ? normalizePromoCode(promoCode) : '',
           customer: {
             name: `${formData.firstName} ${formData.lastName}`.trim(),
             email: formData.email,
@@ -411,6 +417,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       <span>Subtotal</span>
                       <span className="font-semibold text-stone-900">{formatPrice(subtotalEur)}</span>
                     </div>
+                    {promoPercent > 0 && (
+                      <div className="flex justify-between text-emerald-700 font-semibold">
+                        <span>Discount ({promoPercent}% {normalizePromoCode(promoCode)})</span>
+                        <span>-{formatPrice(discountEur)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <span>Shipping</span>
                       <span>{shippingEur === 0 ? 'FREE' : formatPrice(shippingEur)}</span>

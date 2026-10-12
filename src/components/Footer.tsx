@@ -50,7 +50,7 @@ export const Footer: React.FC<FooterProps> = ({
             </div>
             <div>
               <span className="font-bold block text-stone-900">Easy Returns</span>
-              <span>7 days return</span>
+              <span>14-day returns</span>
             </div>
           </button>
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CartItem, CurrencyCode } from '../types';
 import { CURRENCIES } from '../data/products';
 import { formatPrice as formatPriceIn } from '../lib/price';
+import { discountEurFor, promoPercentFor } from '../../supabase/functions/_shared/promo.ts';
 import { FRANCE_FREE_SHIPPING_THRESHOLD_EUR, countryCodeFor, shippingCostEur } from '../../supabase/functions/_shared/shipping.ts';
 import { X, Trash2, ShoppingBag, ArrowRight, Truck, Tag, Sparkles } from 'lucide-react';
 
@@ -14,6 +15,9 @@ interface CartDrawerProps {
   onRemoveItem: (cartItemId: string) => void;
   onOpenCheckout: () => void;
   shippingCountry?: string;
+  appliedPromoCode: string;
+  onApplyPromo: (code: string) => boolean;
+  onRemovePromo: () => void;
 }
 
 const CartDrawerContent: React.FC<CartDrawerProps> = ({
@@ -25,12 +29,16 @@ const CartDrawerContent: React.FC<CartDrawerProps> = ({
   onRemoveItem,
   onOpenCheckout,
   shippingCountry,
+  appliedPromoCode,
+  onApplyPromo,
+  onRemovePromo,
 }) => {
 
   const currency = CURRENCIES[currentCurrency] || CURRENCIES.EUR;
   const [promoCode, setPromoCode] = useState('');
-  const [discountPercent, setDiscountPercent] = useState(0);
-  const [promoApplied, setPromoApplied] = useState(false);
+  const [promoError, setPromoError] = useState('');
+  const discountPercent = promoPercentFor(appliedPromoCode);
+  const promoApplied = discountPercent > 0;
 
   // Subtotal calculation in EUR
   const subtotalEur = cartItems.reduce(
@@ -44,7 +52,7 @@ const CartDrawerContent: React.FC<CartDrawerProps> = ({
   const freeShippingProgress = Math.min(100, (subtotalEur / freeShippingThresholdEur) * 100);
   const remainingForFreeShipping = Math.max(0, freeShippingThresholdEur - subtotalEur);
 
-  const discountEur = (subtotalEur * discountPercent) / 100;
+  const discountEur = discountEurFor(cartItems.map((item) => ({ priceEur: item.product.price, quantity: item.quantity })), discountPercent);
   const shippingEur = cartItems.length === 0 ? 0 : shippingCostEur(subtotalEur, destinationCountry);
   const totalEur = subtotalEur - discountEur + shippingEur;
 
@@ -54,11 +62,11 @@ const CartDrawerContent: React.FC<CartDrawerProps> = ({
 
   const handleApplyPromo = (e: React.FormEvent) => {
     e.preventDefault();
-    if (promoCode.trim().toUpperCase() === 'HERITAGE10' || promoCode.trim().toUpperCase() === 'KOMSE10') {
-      setDiscountPercent(10);
-      setPromoApplied(true);
+    if (onApplyPromo(promoCode)) {
+      setPromoCode('');
+      setPromoError('');
     } else {
-      alert('Invalid Promo Code. Try "HERITAGE10" for 10% off!');
+      setPromoError('This promo code is not valid.');
     }
   };
 
@@ -217,7 +225,7 @@ const CartDrawerContent: React.FC<CartDrawerProps> = ({
                   <Tag className="w-3.5 h-3.5 absolute left-3 top-2.5 text-stone-400" />
                   <input
                     type="text"
-                    placeholder="Promo Code (HERITAGE10)"
+                    placeholder="Promo code"
                     value={promoCode}
                     onChange={(e) => setPromoCode(e.target.value)}
                     className="w-full pl-8 pr-2 py-1.5 text-xs border border-stone-300 rounded bg-stone-50 text-stone-900 uppercase"
@@ -231,9 +239,15 @@ const CartDrawerContent: React.FC<CartDrawerProps> = ({
                 </button>
               </form>
 
+              {promoError && <p className="text-[11px] text-red-600 font-semibold">{promoError}</p>}
               {promoApplied && (
-                <div className="text-[11px] text-emerald-700 font-semibold flex justify-between">
-                  <span>Discount (10% HERITAGE10):</span>
+                <div className="text-[11px] text-emerald-700 font-semibold flex justify-between items-center">
+                  <span className="flex items-center gap-2">
+                    Discount ({discountPercent}% {appliedPromoCode})
+                    <button type="button" onClick={onRemovePromo} className="text-stone-500 underline cursor-pointer font-medium">
+                      Remove
+                    </button>
+                  </span>
                   <span>-{formatPrice(discountEur)}</span>
                 </div>
               )}

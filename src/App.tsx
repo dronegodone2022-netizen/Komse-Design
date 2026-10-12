@@ -7,7 +7,6 @@ import { HeroSection } from './components/HeroSection';
 import { CollectionsGrid } from './components/CollectionsGrid';
 import { BestSellers } from './components/BestSellers';
 import { FAQSection } from './components/FAQSection';
-import { TestimonialsSection } from './components/TestimonialsSection';
 import { LegalModal } from './components/LegalModal';
 import { CustomOrderModal } from './components/CustomOrderModal';
 import { ProductDetailModal } from './components/ProductDetailModal';
@@ -26,6 +25,7 @@ import { Footer } from './components/Footer';
 import { CheckCircle2 } from 'lucide-react';
 import { detectDefaultCurrency } from './utils/currencyDetector';
 import { isAdminRoute, supabase } from './lib/supabase';
+import { normalizePromoCode, promoPercentFor } from '../supabase/functions/_shared/promo.ts';
 import { profileFromRow, profileToRow } from './lib/profile';
 import { apiUrl } from './lib/api';
 
@@ -272,6 +272,7 @@ export default function App() {
   }, [currentUser?.id]);
 
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [appliedPromoCode, setAppliedPromoCode] = useState('');
   const [cartLoadedForUserId, setCartLoadedForUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -1073,7 +1074,7 @@ export default function App() {
       image: PRODUCTS[0].image,
       gallery: [PRODUCTS[0].image],
       description: `Custom ${customDetails.garmentType} in ${customDetails.garmentColor} with text "${customDetails.customText}"`,
-      features: ['Handcrafted custom embroidery', 'Made to order in Paris studio'],
+      features: ['Handcrafted custom embroidery', 'Made to order in our studio'],
       sizes: [customDetails.size],
       colors: [{ name: customDetails.garmentColor, hex: customDetails.garmentColorHex }],
       inStock: true,
@@ -1281,8 +1282,6 @@ export default function App() {
                 }}
               />
 
-              {/* Testimonials Community Voices Section */}
-              <TestimonialsSection />
 
               {/* Homepage Frequently Asked Questions Section */}
               <FAQSection onOpenContact={() => setContactModalOpen(true)} />
@@ -1362,6 +1361,13 @@ export default function App() {
         onRemoveItem={handleRemoveCartItem}
         onOpenCheckout={handleProceedToCheckout}
         shippingCountry={currentUser?.country}
+        appliedPromoCode={appliedPromoCode}
+        onApplyPromo={(code) => {
+          if (!promoPercentFor(code)) return false;
+          setAppliedPromoCode(normalizePromoCode(code));
+          return true;
+        }}
+        onRemovePromo={() => setAppliedPromoCode('')}
       />
 
           <CheckoutModal
@@ -1370,8 +1376,12 @@ export default function App() {
         cartItems={cartItems}
         currentCurrency={currentCurrency}
         currentUser={currentUser}
-        onClearCart={() => setCartItems([])}
+        onClearCart={() => {
+          setCartItems([]);
+          setAppliedPromoCode('');
+        }}
         onOrderCompleted={handleCompletedCheckout}
+        promoCode={appliedPromoCode}
       />
 
           <SearchModal

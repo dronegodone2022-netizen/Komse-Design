@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Product, CurrencyCode } from '../types';
 import { CURRENCIES } from '../data/products';
 import { formatPrice as formatPriceIn } from '../lib/price';
-import { Heart, Plus, Star, SlidersHorizontal, ArrowUpDown, ArrowUpRight } from 'lucide-react';
+import { Heart, Plus, SlidersHorizontal, ArrowUpDown, ArrowUpRight } from 'lucide-react';
 
 interface ShopViewProps {
   products: Product[];
@@ -28,7 +28,7 @@ export const ShopView: React.FC<ShopViewProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>(
     initialCategory === 'Overall' ? 'Overalls' : initialCategory,
   );
-  const [sortBy, setSortBy] = useState<'featured' | 'price-low' | 'price-high' | 'rating'>('featured');
+  const [sortBy, setSortBy] = useState<'featured' | 'price-low' | 'price-high'>('featured');
   const currency = CURRENCIES[currentCurrency] || CURRENCIES.EUR;
 
   useEffect(() => {
@@ -45,7 +45,6 @@ export const ShopView: React.FC<ShopViewProps> = ({
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     if (sortBy === 'price-low') return a.price - b.price;
     if (sortBy === 'price-high') return b.price - a.price;
-    if (sortBy === 'rating') return b.rating - a.rating;
     return 0; // featured
   });
 
@@ -100,7 +99,6 @@ export const ShopView: React.FC<ShopViewProps> = ({
               <option value="featured">Featured</option>
               <option value="price-low">Price: Low to High</option>
               <option value="price-high">Price: High to Low</option>
-              <option value="rating">Customer Rating</option>
             </select>
           </div>
         </div>
@@ -183,25 +181,11 @@ export const ShopView: React.FC<ShopViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Rating Stars & Quick Add */}
+                  {/* Availability & Quick Add */}
                   <div className="flex items-center justify-between mt-3 pt-2 border-t border-stone-100">
-                    <div className="flex items-center gap-1.5">
-                      <div className="flex text-[#C5A059]">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`w-3.5 h-3.5 ${
-                              i < Math.floor(product.rating)
-                                ? 'fill-current text-[#C5A059]'
-                                : 'text-stone-300'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-xs text-stone-500 font-medium">
-                        ({product.reviewCount})
-                      </span>
-                    </div>
+                    <span className="text-[11px] text-stone-500 font-medium">
+                      {product.inStock ? 'In stock' : 'Made on request'}
+                    </span>
 
                     {product.inStock ? (
                       <button

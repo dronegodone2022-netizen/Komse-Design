@@ -2,7 +2,7 @@ import React from 'react';
 import { Product, CurrencyCode } from '../types';
 import { CURRENCIES } from '../data/products';
 import { formatPrice as formatPriceIn } from '../lib/price';
-import { Heart, Plus, Star, ChevronRight, ArrowUpRight } from 'lucide-react';
+import { Heart, Plus, ChevronRight, ArrowUpRight } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface BestSellersProps {
@@ -133,25 +133,11 @@ export const BestSellers: React.FC<BestSellersProps> = ({
                     </div>
                   </div>
 
-                  {/* Rating Stars & Quick Add Button Row */}
+                  {/* Availability & Quick Add Button Row */}
                   <div className="flex items-center justify-between mt-3 pt-2 border-t border-stone-100">
-                    <div className="flex items-center gap-1.5">
-                      <div className="flex text-[#C5A059]">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`w-3.5 h-3.5 ${
-                              i < Math.floor(product.rating)
-                                ? 'fill-current text-[#C5A059]'
-                                : 'text-stone-300'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-xs text-stone-500 font-medium">
-                        ({product.reviewCount})
-                      </span>
-                    </div>
+                    <span className="text-[11px] text-stone-500 font-medium">
+                      {product.inStock ? 'In stock' : 'Made on request'}
+                    </span>
 
                     {/* Quick Add "+" Button */}
                     {product.inStock ? (

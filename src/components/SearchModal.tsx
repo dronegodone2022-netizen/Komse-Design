@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Product, CurrencyCode } from '../types';
 import { CURRENCIES } from '../data/products';
 import { formatPrice } from '../lib/price';
-import { X, Search, Star } from 'lucide-react';
+import { X, Search } from 'lucide-react';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -84,10 +84,6 @@ const SearchModalContent: React.FC<SearchModalProps> = ({
                   <div className="flex items-center gap-2 mt-0.5 text-[11px] text-stone-500">
                     <span className="font-bold text-stone-900">
                       {product.inStock ? formatPrice(product.price, currency) : 'Unavailable'}
-                    </span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1">
-                      <Star className="w-3 h-3 fill-current text-[#C5A059]" /> {product.rating}
                     </span>
                   </div>
                 </div>

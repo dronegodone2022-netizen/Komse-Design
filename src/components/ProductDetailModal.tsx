@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Product, CurrencyCode, ReproductionRequest } from '../types';
 import { CURRENCIES } from '../data/products';
 import { formatPrice } from '../lib/price';
-import { X, Star, Heart, ShoppingBag, Truck, RotateCcw, Check, Sparkles, CheckCircle2, RefreshCcw } from 'lucide-react';
+import { X, Heart, ShoppingBag, Truck, RotateCcw, Check, Sparkles, CheckCircle2, RefreshCcw } from 'lucide-react';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -113,21 +113,6 @@ const ProductDetailModalContent: React.FC<ProductDetailModalProps> = ({
                   {product.inStock ? formattedPrice : 'Currently unavailable'}
                 </div>
 
-                <div className="flex items-center gap-1.5">
-                  <div className="flex text-[#C5A059]">
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`w-4 h-4 ${
-                          i < Math.floor(product.rating) ? 'fill-current text-[#C5A059]' : 'text-stone-300'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-xs text-stone-500 font-medium">
-                    ({product.reviewCount} Reviews)
-                  </span>
-                </div>
               </div>
 
               {/* Color Selector */}
@@ -393,7 +378,7 @@ const ProductDetailModalContent: React.FC<ProductDetailModalProps> = ({
               </div>
               <div className="flex items-center gap-1.5">
                 <RotateCcw className="w-3.5 h-3.5 text-[#C5A059]" />
-                <span>7-Day Hassle Free Return</span>
+                <span>14-day returns</span>
               </div>
             </div>
           </div>

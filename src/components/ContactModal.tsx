@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Mail, Phone, MapPin, Send, Check } from 'lucide-react';
+import { BUSINESS } from '../lib/business';
 import { supabaseFunctionUrl } from '../lib/api';
 
 interface ContactModalProps {
@@ -56,7 +57,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
           <div className="text-center py-8 space-y-3 bg-emerald-50 p-6 rounded-xl border border-emerald-200">
             <Check className="w-10 h-10 text-emerald-600 mx-auto" />
             <h3 className="text-base font-bold text-stone-900">Message Sent Successfully!</h3>
-            <p className="text-xs text-stone-600">Our customer support team in Paris will reply within 24 hours.</p>
+            <p className="text-xs text-stone-600">Our customer support team will reply within 24 hours.</p>
             <button
               onClick={() => { setSent(false); onClose(); }}
               className="bg-stone-900 text-white text-xs font-bold uppercase px-6 py-2.5 rounded cursor-pointer mt-2"
@@ -121,7 +122,8 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
 
             <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
               <div className="text-[11px] text-stone-500 space-y-1">
-                <div className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-[#C5A059]" /> Paris, France • Freetown, Sierra Leone</div>
+                <div className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-[#C5A059]" /> {BUSINESS.addressLines.join(', ')}</div>
+                <div className="flex items-center gap-1"><Phone className="w-3.5 h-3.5 text-[#C5A059]" /> {BUSINESS.phone}</div>
                 <div className="flex items-center gap-1"><Mail className="w-3.5 h-3.5 text-[#C5A059]" /> support@komsedesign.com</div>
                 <div className="flex items-center gap-2 pt-1">
                   <span className="font-bold text-stone-700 text-[10px] uppercase">Socials:</span>
@@ -137,7 +139,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) =
 
               <div className="flex items-center gap-2">
                 <a
-                  href="https://wa.me/33612345678?text=Hello%20KOMSE%20Design%20Customer%20Care,%20I%20have%20an%20inquiry."
+                  href="https://wa.me/33767543093?text=Hello%20KOMSE%20Design%20Customer%20Care,%20I%20have%20an%20inquiry."
                   target="_blank"
                   rel="noopener noreferrer"
                   className="bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold px-4 py-3 rounded shadow cursor-pointer flex items-center gap-2 transition-colors"
