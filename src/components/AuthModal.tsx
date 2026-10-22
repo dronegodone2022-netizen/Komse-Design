@@ -29,10 +29,49 @@ import {
   HelpCircle,
   Star,
   Trash2,
+  Loader2,
 } from 'lucide-react';
 import { BUSINESS } from '../lib/business';
 import { printInvoice } from '../lib/invoice';
 import komseLogoImg from '../assets/images/komse_official_logo.png';
+
+const authInputClass =
+  'w-full h-11 rounded-lg border border-stone-300 bg-white text-base sm:text-sm text-stone-900 placeholder:text-stone-400 transition-colors hover:border-stone-400 focus:outline-none focus:border-[#C5A059] focus:ring-2 focus:ring-[#C5A059]/25';
+const authLabelClass = 'block text-[11px] font-bold uppercase tracking-wider text-stone-600 mb-1.5';
+const authIconClass = 'w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none';
+
+const GoogleLogo = () => (
+  <svg viewBox="0 0 48 48" className="w-[18px] h-[18px]" aria-hidden="true">
+    <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z" />
+    <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
+    <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z" />
+    <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z" />
+  </svg>
+);
+
+const PasswordToggle = ({ shown, onToggle }: { shown: boolean; onToggle: () => void }) => (
+  <button
+    type="button"
+    onClick={onToggle}
+    aria-label={shown ? 'Hide password' : 'Show password'}
+    className="absolute right-1.5 top-1/2 -translate-y-1/2 p-2 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-100 cursor-pointer transition-colors"
+  >
+    {shown ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+  </button>
+);
+
+const SubmitButton = ({ loading, variant, children }: { loading: boolean; variant: 'dark' | 'gold'; children: React.ReactNode }) => (
+  <button
+    type="submit"
+    disabled={loading}
+    className={`w-full h-11 font-bold uppercase rounded-lg shadow-sm cursor-pointer transition-colors text-xs tracking-wider flex items-center justify-center gap-2 disabled:cursor-wait disabled:opacity-80 ${
+      variant === 'gold' ? 'bg-[#C5A059] hover:bg-[#A88238] text-stone-950' : 'bg-stone-900 hover:bg-black text-white'
+    }`}
+  >
+    {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+    {children}
+  </button>
+);
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -225,6 +264,19 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
   const [resetCooldownSeconds, setResetCooldownSeconds] = useState(0);
   const [resetPasswordMode, setResetPasswordMode] = useState(() => new URLSearchParams(window.location.search).get('reset_password') === '1');
   const [newPassword, setNewPassword] = useState('');
+  const [authSubmitting, setAuthSubmitting] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const withAuthSubmitting = (handler: (e: React.FormEvent) => Promise<void> | void) => async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (authSubmitting) return;
+    setAuthSubmitting(true);
+    try {
+      await handler(e);
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
 
   // Edit Address states
   const [editAddress, setEditAddress] = useState(currentUser?.address || 'Sample Street 1');
@@ -282,7 +334,7 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
     }
     setAuthError('');
     const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-      redirectTo: `${window.location.origin}/?reset_password=1`,
+      redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}?reset_password=1`,
     });
     if (error) {
       if (error.message.toLowerCase().includes('rate limit')) {
@@ -311,11 +363,15 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
       return;
     }
     setAuthError('');
+    setGoogleLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/?auth=google` },
+      options: { redirectTo: `${window.location.origin}${import.meta.env.BASE_URL}?auth=google` },
     });
-    if (error) setAuthError(`Unable to continue with Google: ${error.message}`);
+    if (error) {
+      setGoogleLoading(false);
+      setAuthError(`Unable to continue with Google: ${error.message}`);
+    }
   };
 
   const handleUpdatePassword = async (event: React.FormEvent) => {
@@ -584,7 +640,7 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
         className={`bg-[#FCFBF9] w-full shadow-2xl relative overflow-hidden flex flex-col ${
           currentUser
             ? 'h-dvh sm:h-[min(780px,92vh)] sm:max-w-4xl sm:rounded-2xl sm:border sm:border-stone-300'
-            : 'max-w-2xl rounded-2xl border border-stone-300 max-h-[90vh]'
+            : 'max-w-md rounded-2xl border border-stone-300 max-h-[90vh]'
         }`}
       >
         {/* Modal Top Bar */}
@@ -624,15 +680,17 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
               </div>
             </div>
           ) : (
-            <div className="space-y-1">
-              <span className="text-xs font-bold text-[#C5A059] uppercase tracking-widest block">
-                Welcome to KOMSE
+            <div className="space-y-1.5 pr-10">
+              <span className="text-[11px] font-bold text-[#C5A059] uppercase tracking-[0.2em] block">
+                KOMSE Design
               </span>
-              <h2 className="text-2xl font-black text-white uppercase tracking-tight">
-                {authMode === 'login' ? 'SIGN IN TO YOUR ACCOUNT' : 'JOIN THE CULTURAL CLUB'}
+              <h2 className="text-2xl font-black text-white tracking-tight">
+                {resetPasswordMode ? 'Reset your password' : authMode === 'login' ? 'Welcome back' : 'Join the cultural club'}
               </h2>
-              <p className="text-xs text-stone-400">
-                Access your orders, custom design history, and express checkout.
+              <p className="text-sm text-stone-400">
+                {authMode === 'login'
+                  ? 'Sign in to track orders, revisit your custom designs and check out faster.'
+                  : 'Create an account to save designs, track orders and check out faster.'}
               </p>
             </div>
           )}
@@ -1336,246 +1394,215 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
           </div>
         ) : (
           /* UNAUTHENTICATED LOGIN / SIGN UP PANEL */
-          <div className="p-6 md:p-8 space-y-6 overflow-y-auto flex-1 text-xs">
-            {/* Tab Selector */}
-            <div className="flex items-center justify-between border-b border-stone-200 pb-3">
-              <div className="flex items-center gap-4 text-sm font-bold">
-                <button
-                  onClick={() => {
-                    setAuthMode('login');
-                    setAuthError('');
-                  }}
-                  className={`cursor-pointer pb-1 transition-all ${
-                    authMode === 'login'
-                      ? 'text-stone-900 border-b-2 border-[#C5A059]'
-                      : 'text-stone-400 hover:text-stone-700'
-                  }`}
-                >
-                  Sign In
-                </button>
-
-                <button
-                  onClick={() => {
-                    setAuthMode('register');
-                    setAuthError('');
-                  }}
-                  className={`cursor-pointer pb-1 transition-all ${
-                    authMode === 'register'
-                      ? 'text-stone-900 border-b-2 border-[#C5A059]'
-                      : 'text-stone-400 hover:text-stone-700'
-                  }`}
-                >
-                  Create Account
-                </button>
+          <div className="p-6 sm:p-8 space-y-5 overflow-y-auto flex-1 text-sm">
+            {/* Mode Switch */}
+            {!resetPasswordMode && (
+              <div role="tablist" aria-label="Account access" className="grid grid-cols-2 gap-1 p-1 bg-stone-100 border border-stone-200 rounded-xl">
+                {(['login', 'register'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    role="tab"
+                    aria-selected={authMode === mode}
+                    onClick={() => {
+                      setAuthMode(mode);
+                      setAuthError('');
+                      setAuthSuccess('');
+                    }}
+                    className={`py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer transition-all ${
+                      authMode === mode
+                        ? 'bg-white text-stone-900 shadow-sm'
+                        : 'text-stone-500 hover:text-stone-800'
+                    }`}
+                  >
+                    {mode === 'login' ? 'Sign In' : 'Create Account'}
+                  </button>
+                ))}
               </div>
-
-              {isLocalhost && (
-                <button
-                  onClick={handleDemoLogin}
-                  className="bg-[#C5A059]/15 hover:bg-[#C5A059]/25 text-[#9A7A38] hover:text-[#7C6026] border border-[#C5A059]/40 font-bold px-3 py-1.5 rounded-full flex items-center gap-1.5 cursor-pointer transition-colors text-[11px]"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-[#C5A059]" /> Quick Demo Login
-                </button>
-              )}
-            </div>
+            )}
 
             {/* Success Feedback */}
             {authSuccess && (
-              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg flex items-center gap-2 font-semibold">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <div role="status" className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg flex items-start gap-2 font-semibold text-xs">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-px" />
                 {authSuccess}
               </div>
             )}
 
             {/* Error Feedback */}
             {authError && (
-              <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg font-semibold">
+              <div role="alert" className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg font-semibold text-xs">
                 {authError}
               </div>
             )}
 
             {!resetPasswordMode && (
-              <button
-                type="button"
-                onClick={handleGoogleAuth}
-                className="w-full border border-stone-300 bg-white hover:bg-stone-50 text-stone-800 font-bold uppercase py-3 rounded shadow-sm cursor-pointer transition-colors text-xs tracking-wider flex items-center justify-center gap-2"
-              >
-                <span className="w-5 h-5 rounded-full border border-stone-300 flex items-center justify-center text-[11px] font-black text-[#4285F4]">G</span>
-                Continue with Google
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={handleGoogleAuth}
+                  disabled={googleLoading}
+                  className="w-full h-11 border border-stone-300 bg-white hover:bg-stone-50 hover:border-stone-400 text-stone-800 font-semibold rounded-lg shadow-sm cursor-pointer transition-colors flex items-center justify-center gap-3 disabled:cursor-wait disabled:opacity-70"
+                >
+                  {googleLoading ? <Loader2 className="w-[18px] h-[18px] animate-spin text-stone-500" /> : <GoogleLogo />}
+                  {googleLoading ? 'Redirecting to Google…' : 'Continue with Google'}
+                </button>
+
+                <div className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-wider text-stone-400">
+                  <span className="h-px flex-1 bg-stone-200" />
+                  or use your email
+                  <span className="h-px flex-1 bg-stone-200" />
+                </div>
+              </>
             )}
 
             {resetPasswordMode ? (
-              <form onSubmit={handleUpdatePassword} className="space-y-4">
+              <form onSubmit={withAuthSubmitting(handleUpdatePassword)} className="space-y-4">
                 <div>
-                  <h3 className="text-sm font-bold uppercase text-stone-900">Set a new password</h3>
+                  <h3 className="text-base font-bold text-stone-900">Set a new password</h3>
                   <p className="mt-1 text-stone-500">Choose a new password for your KOMSE account.</p>
                 </div>
                 <div>
-                  <label className="block text-stone-700 font-bold mb-1">New Password</label>
+                  <label htmlFor="auth-new-password" className={authLabelClass}>New Password</label>
                   <div className="relative">
-                    <Lock className="w-4 h-4 absolute left-3 top-3 text-stone-400" />
+                    <Lock className={authIconClass} />
                     <input
+                      id="auth-new-password"
                       type={showPassword ? 'text' : 'password'}
                       required
                       minLength={6}
+                      autoComplete="new-password"
+                      placeholder="At least 6 characters"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full pl-9 pr-10 py-2.5 border border-stone-300 rounded bg-white text-stone-900"
+                      className={`${authInputClass} pl-10 pr-11`}
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-stone-400 hover:text-stone-700 cursor-pointer"
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
+                    <PasswordToggle shown={showPassword} onToggle={() => setShowPassword(!showPassword)} />
                   </div>
                 </div>
-                <button
-                  type="submit"
-                  className="w-full bg-stone-900 hover:bg-black text-white font-bold uppercase py-3 rounded shadow cursor-pointer transition-colors text-xs tracking-wider"
-                >
-                  Update Password
-                </button>
+                <SubmitButton loading={authSubmitting} variant="dark">Update Password</SubmitButton>
                 <button
                   type="button"
                   onClick={() => {
                     setResetPasswordMode(false);
                     setAuthError('');
                   }}
-                  className="w-full text-stone-600 hover:text-stone-900 text-xs font-bold uppercase cursor-pointer"
+                  className="w-full flex items-center justify-center gap-1.5 text-stone-500 hover:text-stone-900 text-xs font-bold uppercase tracking-wider cursor-pointer"
                 >
-                  Back to Sign In
+                  <ArrowLeft className="w-3.5 h-3.5" /> Back to Sign In
                 </button>
               </form>
             ) : authMode === 'login' ? (
               /* LOGIN FORM */
-              <form onSubmit={handleLoginSubmit} className="space-y-4">
+              <form onSubmit={withAuthSubmitting(handleLoginSubmit)} className="space-y-4">
                 <div>
-                  <label className="block text-stone-700 font-bold mb-1">Email Address</label>
+                  <label htmlFor="auth-login-email" className={authLabelClass}>Email Address</label>
                   <div className="relative">
-                    <Mail className="w-4 h-4 absolute left-3 top-3 text-stone-400" />
+                    <Mail className={authIconClass} />
                     <input
+                      id="auth-login-email"
                       type="email"
                       required
+                      autoComplete="email"
                       placeholder="you@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 border border-stone-300 rounded bg-white text-stone-900"
+                      className={`${authInputClass} pl-10 pr-3`}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-stone-700 font-bold mb-1">Password</label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 absolute left-3 top-3 text-stone-400" />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-9 pr-10 py-2.5 border border-stone-300 rounded bg-white text-stone-900"
-                    />
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label htmlFor="auth-login-password" className={`${authLabelClass} mb-0`}>Password</label>
                     <button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-stone-400 hover:text-stone-700 cursor-pointer"
+                      onClick={handleForgotPassword}
+                      disabled={resetCooldownSeconds > 0}
+                      className="text-xs text-[#9A7A38] font-semibold hover:text-[#7C6026] hover:underline cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 disabled:no-underline"
                     >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      {resetCooldownSeconds > 0 ? `Resend in ${resetCooldownSeconds}s` : 'Forgot password?'}
                     </button>
+                  </div>
+                  <div className="relative">
+                    <Lock className={authIconClass} />
+                    <input
+                      id="auth-login-password"
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      autoComplete="current-password"
+                      placeholder="Your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className={`${authInputClass} pl-10 pr-11`}
+                    />
+                    <PasswordToggle shown={showPassword} onToggle={() => setShowPassword(!showPassword)} />
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-[11px]">
-                  <label className="flex items-center gap-2 cursor-pointer text-stone-600">
-                    <input type="checkbox" className="rounded border-stone-300 text-[#C5A059]" defaultChecked />
-                    Remember me
-                  </label>
+                <SubmitButton loading={authSubmitting} variant="dark">Sign In</SubmitButton>
+
+                <p className="text-center text-xs text-stone-500">
+                  New to KOMSE?{' '}
                   <button
                     type="button"
-                    onClick={handleForgotPassword}
-                    disabled={resetCooldownSeconds > 0}
-                    className="text-[#C5A059] font-bold hover:underline cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                    onClick={() => {
+                      setAuthMode('register');
+                      setAuthError('');
+                    }}
+                    className="font-bold text-stone-900 hover:text-[#9A7A38] cursor-pointer"
                   >
-                    {resetCooldownSeconds > 0 ? `Resend in ${resetCooldownSeconds}s` : 'Forgot Password?'}
+                    Create an account
                   </button>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full bg-stone-900 hover:bg-black text-white font-bold uppercase py-3 rounded shadow cursor-pointer transition-colors text-xs tracking-wider"
-                >
-                  Sign In
-                </button>
+                </p>
               </form>
             ) : (
               /* REGISTER FORM */
-              <form onSubmit={handleRegisterSubmit} className="space-y-4">
+              <form onSubmit={withAuthSubmitting(handleRegisterSubmit)} className="space-y-4">
                 <div>
-                  <label className="block text-stone-700 font-bold mb-1">Full Name</label>
+                  <label htmlFor="auth-register-name" className={authLabelClass}>Full Name</label>
                   <div className="relative">
-                    <User className="w-4 h-4 absolute left-3 top-3 text-stone-400" />
+                    <User className={authIconClass} />
                     <input
+                      id="auth-register-name"
                       type="text"
                       required
+                      autoComplete="name"
                       placeholder="Your full name"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 border border-stone-300 rounded bg-white text-stone-900"
+                      className={`${authInputClass} pl-10 pr-3`}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-stone-700 font-bold mb-1">Email Address</label>
+                  <label htmlFor="auth-register-email" className={authLabelClass}>Email Address</label>
                   <div className="relative">
-                    <Mail className="w-4 h-4 absolute left-3 top-3 text-stone-400" />
+                    <Mail className={authIconClass} />
                     <input
+                      id="auth-register-email"
                       type="email"
                       required
+                      autoComplete="email"
                       placeholder="you@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 border border-stone-300 rounded bg-white text-stone-900"
+                      className={`${authInputClass} pl-10 pr-3`}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-stone-700 font-bold mb-1">Phone Number (Optional)</label>
-                  <div className="grid grid-cols-[auto_1fr] gap-2">
-                    <select
-                      value={registrationPhoneCode}
-                      onChange={(event) => setRegistrationPhoneCode(event.target.value)}
-                      className="px-3 py-2.5 text-sm border border-stone-300 rounded-lg bg-white text-stone-900 focus:outline-none focus:border-[#C5A059] focus:ring-2 focus:ring-[#C5A059]/20 transition"
-                      aria-label="Country dialing code"
-                    >
-                      {COUNTRY_OPTIONS.map((option) => (
-                        <option key={option.code} value={option.dialCode}>{option.dialCode}</option>
-                      ))}
-                    </select>
-                    <input
-                      type="text"
-                      placeholder="6 12 34 56 78"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full px-3 py-2.5 text-sm border border-stone-300 rounded-lg bg-white text-stone-900 focus:outline-none focus:border-[#C5A059] focus:ring-2 focus:ring-[#C5A059]/20 transition"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-stone-700 font-bold mb-1">Country / Region</label>
+                  <label htmlFor="auth-register-country" className={authLabelClass}>Country / Region</label>
                   <select
+                    id="auth-register-country"
                     value={registrationCountry}
                     onChange={(event) => {
                       setRegistrationCountry(event.target.value);
                       setRegistrationPhoneCode(getDialCode(event.target.value));
                     }}
-                    className="w-full px-3 py-2.5 text-sm border border-stone-300 rounded-lg bg-white text-stone-900 focus:outline-none focus:border-[#C5A059] focus:ring-2 focus:ring-[#C5A059]/20 transition"
+                    className={`${authInputClass} px-3`}
                   >
                     {COUNTRY_OPTIONS.map((option) => (
                       <option key={option.code} value={option.name}>{option.name}</option>
@@ -1584,38 +1611,66 @@ const AuthModalContent: React.FC<AuthModalProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-stone-700 font-bold mb-1">Password</label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 absolute left-3 top-3 text-stone-400" />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      placeholder="At least 6 characters"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full pl-9 pr-10 py-2.5 border border-stone-300 rounded bg-white text-stone-900"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-stone-400 hover:text-stone-700 cursor-pointer"
+                  <label htmlFor="auth-register-phone" className={authLabelClass}>
+                    Phone Number <span className="normal-case tracking-normal font-medium text-stone-400">(optional)</span>
+                  </label>
+                  <div className="grid grid-cols-[auto_1fr] gap-2">
+                    <select
+                      value={registrationPhoneCode}
+                      onChange={(event) => setRegistrationPhoneCode(event.target.value)}
+                      className={`${authInputClass} w-auto px-2.5`}
+                      aria-label="Country dialing code"
                     >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
+                      {COUNTRY_OPTIONS.map((option) => (
+                        <option key={option.code} value={option.dialCode}>{option.dialCode}</option>
+                      ))}
+                    </select>
+                    <input
+                      id="auth-register-phone"
+                      type="tel"
+                      autoComplete="tel-national"
+                      placeholder="6 12 34 56 78"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className={`${authInputClass} px-3`}
+                    />
                   </div>
                 </div>
 
-                <div className="text-[11px] text-stone-500">
-                  By creating an account, you agree to KOMSE DESIGN Terms of Service and Privacy Policy.
+                <div>
+                  <label htmlFor="auth-register-password" className={authLabelClass}>Password</label>
+                  <div className="relative">
+                    <Lock className={authIconClass} />
+                    <input
+                      id="auth-register-password"
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      autoComplete="new-password"
+                      placeholder="At least 6 characters"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className={`${authInputClass} pl-10 pr-11`}
+                    />
+                    <PasswordToggle shown={showPassword} onToggle={() => setShowPassword(!showPassword)} />
+                  </div>
                 </div>
 
-                <button
-                  type="submit"
-                  className="w-full bg-[#C5A059] hover:bg-[#A88238] text-stone-950 font-bold uppercase py-3 rounded shadow cursor-pointer transition-colors text-xs tracking-wider"
-                >
-                  Create Account
-                </button>
+                <SubmitButton loading={authSubmitting} variant="gold">Create Account</SubmitButton>
+
+                <p className="text-center text-[11px] leading-relaxed text-stone-500">
+                  By creating an account, you agree to the KOMSE DESIGN Terms of Service and Privacy Policy.
+                </p>
               </form>
+            )}
+
+            {isLocalhost && !resetPasswordMode && (
+              <button
+                type="button"
+                onClick={handleDemoLogin}
+                className="w-full border border-dashed border-[#C5A059]/50 bg-[#C5A059]/5 hover:bg-[#C5A059]/15 text-[#9A7A38] font-bold py-2 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-colors text-[11px] uppercase tracking-wider"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-[#C5A059]" /> Quick Demo Login (localhost only)
+              </button>
             )}
           </div>
         )}
